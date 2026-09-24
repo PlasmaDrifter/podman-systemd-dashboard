@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>podman-systemd-dashboard</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="alternate icon" href="/static/favicon.ico">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="dashboard-header">
+      <div class="header-left">
+        <div class="logo-area">
+          <div class="status-indicator live"></div>
+          <h1>podman-systemd-dashboard</h1>
+        </div>
+        <p class="subtitle">Monitor, inspect, and configure background user services, timers, and containers</p>
+      </div>
+      <div class="header-right">
+        <div class="header-actions-row">
+          <button id="btn-theme-modal" class="btn btn-secondary" title="Theme Settings">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+              <circle cx="12" cy="12" r="4"/>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+            </svg>
+            <span>Theme</span>
+          </button>
+          <button id="btn-scan" class="btn btn-primary">
+            <svg class="icon spin-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+            <span id="scan-btn-text">Scan Now</span>
+          </button>
+        </div>
+        <span class="last-scan-label" id="last-scan-time">Last scan: --:--:--</span>
+      </div>
+    </header>
+
+    <!-- Unified Stats & Controls Toolbar -->
+    <div class="toolbar-row">
+      <!-- Stats Badges -->
+      <div class="stats-group">
+        <div class="stat-card" data-category="all" title="Show All Services">
+          <span class="stat-label">Total Services</span>
+          <span class="stat-value" id="stat-total-services">-</span>
+        </div>
+        <div class="stat-card" data-category="running" title="Filter Running Services">
+          <span class="stat-label">Running</span>
+          <span class="stat-value text-success" id="stat-running-services">-</span>
+        </div>
+        <div class="stat-card" data-category="web" title="Filter Web Apps">
+          <span class="stat-label">Web Apps</span>
+          <span class="stat-value text-purple" id="stat-web">-</span>
+        </div>
+        <div class="stat-card" data-category="containers" title="Filter Podman Containers">
+          <span class="stat-label">Podman</span>
+          <span class="stat-value text-cyan" id="stat-containers">-</span>
+        </div>
+        <div class="stat-card" data-category="timers" title="Filter Scheduled Timers">
+          <span class="stat-label">Timers</span>
+          <span class="stat-value text-blue" id="stat-timers">-</span>
+        </div>
+      </div>
+
+      <!-- Controls: Search & Status Filters -->
+      <div class="controls-group">
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="search-input" placeholder="Search services, timers, ports...">
+        </div>
+
+        <div class="filter-tabs">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="running">Running</button>
+          <button class="filter-btn" data-filter="inactive">Stopped</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Container Rendered By Categories -->
+    <main id="categories-container" class="categories-container">
+      <div class="loading-state">Loading services...</div>
+    </main>
+  </div>
+
+  <!-- Unit File Editor Modal -->
+  <div class="modal-overlay" id="editor-modal">
+    <div class="modal-content editor-modal-content">
+      <div class="modal-header">
+        <div>
+          <h2 id="editor-title">Edit Unit File</h2>
+          <span class="file-path-badge" id="editor-file-path">/path/to/unit</span>
+        </div>
+        <button class="btn-close" id="btn-close-editor">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="editor-banner" class="banner hidden"></div>
+        <textarea id="editor-textarea" spellcheck="false"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-cancel-editor">Cancel</button>
+        <button class="btn btn-primary" id="btn-save-editor">Save Changes</button>
+        <button class="btn btn-accent" id="btn-save-restart-editor">Save & Restart Service</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logs Modal -->
+  <div class="modal-overlay" id="logs-modal">
+    <div class="modal-content logs-modal-content">
+      <div class="modal-header">
+        <div>
+          <h2 id="logs-title">Service Logs</h2>
+          <span class="file-path-badge" id="logs-unit-name">unit.service</span>
+        </div>
+        <div class="modal-header-actions">
+          <button class="btn btn-sm btn-secondary" id="btn-refresh-logs">Refresh</button>
+          <button class="btn btn-sm btn-secondary" id="btn-copy-logs">Copy</button>
+          <button class="btn-close" id="btn-close-logs">&times;</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <pre class="logs-terminal" id="logs-terminal">Loading logs...</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Theme Customizer Modal -->
+  <div class="modal-overlay" id="theme-modal">
+    <div class="modal-content theme-modal-content">
+      <div class="modal-header">
+        <div>
+          <h2>Theme & Appearance</h2>
+          <span class="file-path-badge">Customize colors, select presets, or save new custom themes</span>
+        </div>
+        <button class="btn-close" id="btn-close-theme">&times;</button>
+      </div>
+      <div class="modal-body theme-modal-body">
+        <!-- Theme Presets Gallery (Chips/Cards) -->
+        <div class="theme-presets-section">
+          <div class="theme-presets-header">
+            <h3>Preset Themes</h3>
+            <div class="theme-actions-group">
+              <button class="btn btn-sm btn-secondary" id="btn-reset-theme">Reset to Default</button>
+            </div>
+          </div>
+          <div class="theme-presets-grid" id="theme-presets-gallery">
+            <!-- Dynamically populated cards/chips -->
+          </div>
+        </div>
+
+        <!-- Custom Themes Gallery -->
+        <div class="theme-presets-section" id="custom-themes-section" style="display: none;">
+          <div class="theme-presets-header">
+            <h3>Your Custom Themes</h3>
+          </div>
+          <div class="theme-presets-grid" id="custom-themes-gallery">
+            <!-- Dynamically populated custom theme cards -->
+          </div>
+        </div>
+
+        <div class="theme-divider"></div>
+
+        <!-- Color Variable Adjusters -->
+        <div class="theme-customizer-grid">
+          <div class="theme-group">
+            <h3>Backgrounds & Surfaces</h3>
+            <div class="color-item">
+              <label>Page Background</label>
+              <div class="color-picker-wrapper">
+                <input type="color" id="color-bg-base" data-var="--bg-base">
+                <input type="text" class="color-hex-text" data-target="color-bg-base">
+              </div>
+            </div>
+            <div class="color-item">
+              <label>Surface / Panels</label>
+              <div class="color-picker-wrapper">
+                <input type="color" id="color-bg-surface" data-var="--bg-surface">
+                <input type="text" class="color-hex-text" data-target="color-bg-surface">
+              </div>
+            </div>
+            <div class="color-item">
+              <label>Card Background</label>
+              <div class="color-picker-wrapper">
+                <input type="color" id="color-bg-card" data-var="--bg-card">
+                <input type="text" class="color-hex-text" data-target="color-bg-card">
+              </div>
+            </div>
+            <div class="color-item">
+              <label>Card Hover</label>
+              <div class="color-picker-wrapper">
+                <input type="color" id="color-bg-card-hover" data-var="--bg-card-hover">
+                <input type="text" class="color-hex-text" data-target="color-bg-card-hover">
+              </div>
+            </div>
+          </div>
+
+          <div class="theme-group">
+            <h3>Borders & Text</h3>
+            <div class="color-item">
+              <label>Border Color</label>
+              <div class="color-picker-wrapper">
+                <input type="color" id="color-border-color" data-var="--border-color">
+                <input type="text" class="color-hex-text" data-target="color-border-color">
+              </div>
+            </div>
+            <div class="color-item">
+              <label>Border Subtle</label>
+              <div class="color-picker-wrapper">
+                <input type="color" id="color-border-subtle" data-var="--border-subtle">
+                <input type="text" class="color-hex-text" data-target="color-border-subtle">
+              </div>
+            </div>
+            <div class="color-item">
+              <label>Primary Text</label>
+              <div class="color-picker-wrapper">
+                <input type="color" id="color-text-main" data-var="--text-main">
+                <input type="text" class="color-hex-text" data-target="color-text-main">
+              </div>
+            </div>
+            <div class="color-item">
+              <label>Muted Text</label>
+              <div class="color-picker-wrapper">
+                <input type="color" id="color-text-muted" data-var="--text-muted">
+                <input type="text" class="color-hex-text" data-target="color-text-muted">
+              </div>
+            </div>
+          </div>
+
+          <div class="theme-group">
+            <h3>Accents & Highlights</h3>
+            <div class="color-item">
+              <label>Primary Accent</label>
+              <div class="color-picker-wrapper">
+                <input type="color" id="color-primary" data-var="--primary">
+                <input type="text" class="color-hex-text" data-target="color-primary">
+              </div>
+            </div>
+            <div class="color-item">
+              <label>Secondary Accent</label>
+              <div class="color-picker-wrapper">
+                <input type="color" id="color-accent" data-var="--accent">
+                <input type="text" class="color-hex-text" data-target="color-accent">
+              </div>
+            </div>
+            <div class="color-item">
+              <label>Success / Running</label>
+              <div class="color-picker-wrapper">
+                <input type="color" id="color-success" data-var="--success">
+                <input type="text" class="color-hex-text" data-target="color-success">
+              </div>
+            </div>
+            <div class="color-item">
+              <label>Warning / Alert</label>
+              <div class="color-picker-wrapper">
+                <input type="color" id="color-warning" data-var="--warning">
+                <input type="text" class="color-hex-text" data-target="color-warning">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Save As New Theme Form -->
+        <div class="theme-save-box">
+          <div class="theme-save-input-group">
+            <input type="text" id="custom-theme-name" placeholder="Name for your new theme..." class="theme-name-input">
+            <button class="btn btn-primary" id="btn-save-custom-theme">Save As New Theme</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-done-theme">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
