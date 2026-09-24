@@ -47,8 +47,8 @@ body {
   background-color: var(--bg-base);
   color: var(--text-main);
   font-family: var(--font-sans);
-  line-height: 1.35;
-  padding: 8px 16px;
+  line-height: 1.45;
+  padding: 16px 22px;
   min-height: 100vh;
 }
 
@@ -62,26 +62,26 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
-  padding-bottom: 6px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border-color);
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   flex-wrap: wrap;
 }
 
 .header-left .logo-area {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .header-left h1 {
-  font-size: 1.05rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--text-main);
   letter-spacing: -0.2px;
@@ -90,10 +90,10 @@ body {
 }
 
 .subtitle {
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
   margin: 0;
-  line-height: 1;
+  line-height: 1.2;
 }
 
 @media (max-width: 960px) {
@@ -103,40 +103,40 @@ body {
 }
 
 .status-indicator {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--success);
-  box-shadow: 0 0 6px var(--success);
+  box-shadow: 0 0 8px var(--success);
 }
 
 .header-right {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .header-actions-row {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
 }
 
 .header-actions-row .btn {
-  padding: 3px 8px;
-  height: 24px;
-  font-size: 0.72rem;
-  gap: 4px;
+  padding: 5px 11px;
+  height: 28px;
+  font-size: 0.78rem;
+  gap: 5px;
 }
 
 .header-actions-row .btn svg {
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
 }
 
 .last-scan-label {
-  font-size: 0.7rem;
+  font-size: 0.74rem;
   color: var(--text-dim);
   white-space: nowrap;
 }
@@ -147,25 +147,25 @@ body {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
 .stats-group {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
 }
 
 .stat-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
-  border-radius: 4px;
-  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  padding: 4px 9px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 7px;
   cursor: pointer;
   transition: all 0.15s ease;
   user-select: none;
@@ -182,7 +182,7 @@ body {
 }
 
 .stat-label {
-  font-size: 0.62rem;
+  font-size: 0.66rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -190,7 +190,7 @@ body {
 }
 
 .stat-value {
-  font-size: 0.8rem;
+  font-size: 0.88rem;
   font-weight: 700;
   line-height: 1;
 }
@@ -203,28 +203,28 @@ body {
 .controls-group {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex: 1;
   justify-content: flex-end;
-  min-width: 260px;
+  min-width: 280px;
 }
 
 .search-box {
   position: relative;
   flex: 1;
-  max-width: 260px;
-  min-width: 140px;
+  max-width: 290px;
+  min-width: 150px;
 }
 
 .search-box input {
   width: 100%;
-  padding: 2px 8px 2px 24px;
-  height: 24px;
+  padding: 4px 10px 4px 28px;
+  height: 28px;
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--text-main);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   outline: none;
   transition: border-color 0.15s;
 }
@@ -235,27 +235,27 @@ body {
 
 .search-icon {
   position: absolute;
-  left: 7px;
+  left: 8px;
   top: 50%;
   transform: translateY(-50%);
-  width: 12px;
-  height: 12px;
+  width: 13px;
+  height: 13px;
   stroke: var(--text-dim);
 }
 
 .filter-tabs {
   display: flex;
-  gap: 3px;
+  gap: 4px;
 }
 
 .filter-btn {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   color: var(--text-muted);
-  padding: 2px 8px;
-  height: 24px;
-  border-radius: 4px;
-  font-size: 0.74rem;
+  padding: 4px 11px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
@@ -279,43 +279,43 @@ body {
 .categories-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
 }
 
 .category-section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .category-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 3px;
+  padding-bottom: 6px;
   border-bottom: 1px solid var(--border-color);
 }
 
 .category-title-area {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .category-title {
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: 1.02rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
+  letter-spacing: 0.6px;
+  color: var(--text-main);
 }
 
 .category-badge {
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   font-weight: 600;
-  padding: 1px 7px;
+  padding: 2px 8px;
   border-radius: 12px;
-  background: rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.08);
   color: var(--text-dim);
 }
 
@@ -379,13 +379,13 @@ body {
 }
 
 .status-badge {
-  font-size: 0.7rem;
+  font-size: 0.74rem;
   font-weight: 600;
-  padding: 2px 7px;
+  padding: 3px 9px;
   border-radius: 12px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   white-space: nowrap;
 }
 
@@ -529,17 +529,17 @@ body {
 
 .services-table th {
   background: var(--bg-surface);
-  padding: 6px 12px;
+  padding: 8px 14px;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   letter-spacing: 0.5px;
   border-bottom: 1px solid var(--border-color);
 }
 
 .services-table td {
-  padding: 6px 12px;
+  padding: 8px 14px;
   border-bottom: 1px solid var(--border-subtle);
   vertical-align: middle;
 }
@@ -555,18 +555,18 @@ body {
 .table-service-name {
   font-weight: 600;
   color: var(--text-main);
-  font-size: 0.84rem;
+  font-size: 0.86rem;
 }
 
 .table-service-file {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: var(--text-dim);
 }
 
 .table-desc {
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   max-width: 320px;
   white-space: nowrap;
   overflow: hidden;
@@ -575,13 +575,13 @@ body {
 
 .table-actions {
   display: flex;
-  gap: 5px;
+  gap: 6px;
   justify-content: flex-end;
 }
 
 .table-actions .btn {
-  padding: 3px 8px;
-  font-size: 0.74rem;
+  padding: 4px 9px;
+  font-size: 0.76rem;
   border-radius: 4px;
 }
 
