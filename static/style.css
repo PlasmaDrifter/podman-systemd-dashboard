@@ -264,13 +264,18 @@ body.density-spacious .service-card {
   border-radius: 50%;
   font-size: 8px;
   font-weight: 900;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   line-height: 1;
   box-shadow: 0 0 0 2px var(--bg-surface), 0 2px 4px rgba(0, 0, 0, 0.4);
   animation: update-pulse 2s infinite ease-in-out;
   pointer-events: none;
+}
+
+.nav-update-badge.hidden,
+.hidden {
+  display: none !important;
 }
 
 @keyframes update-pulse {
