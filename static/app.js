@@ -16,10 +16,12 @@ const CATEGORY_ORDER = [
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
-  initThemeManager();
+  loadSavedSettings();
+  applyAllActiveSettings();
   initEventListeners();
+  initSettingsUI();
   loadData();
-  loadSettings();
+  checkAppUpdatesAsync();
 });
 
 function initEventListeners() {
@@ -75,61 +77,19 @@ function initEventListeners() {
   document.getElementById('btn-refresh-logs').addEventListener('click', refreshLogs);
   document.getElementById('btn-copy-logs').addEventListener('click', copyLogsToClipboard);
 
-  // Theme Modal Controls
-  document.getElementById('btn-theme-modal').addEventListener('click', openThemeModal);
-  document.getElementById('btn-close-theme').addEventListener('click', closeThemeModal);
-  document.getElementById('btn-done-theme').addEventListener('click', closeThemeModal);
-
   // Settings Modal Controls
-  const btnSettings = document.getElementById('btn-settings-modal');
+  const btnSettings = document.getElementById('btn-settings');
   if (btnSettings) btnSettings.addEventListener('click', openSettingsModal);
-  const btnCloseSettings = document.getElementById('btn-close-settings');
+  const btnCloseSettings = document.getElementById('settings-close-btn');
   if (btnCloseSettings) btnCloseSettings.addEventListener('click', closeSettingsModal);
-  const btnDoneSettings = document.getElementById('btn-done-settings');
+  const btnDoneSettings = document.getElementById('settings-done-btn');
   if (btnDoneSettings) btnDoneSettings.addEventListener('click', closeSettingsModal);
-
-  // Settings Toggles & Actions
-  const toggleGithubBtn = document.getElementById('toggle-github-btn');
-  if (toggleGithubBtn) {
-    toggleGithubBtn.addEventListener('change', async (e) => {
-      const show = e.target.checked;
-      const navGithub = document.getElementById('nav-github-link');
-      if (navGithub) {
-        navGithub.style.display = show ? 'inline-flex' : 'none';
-      }
-      await updateAppSetting({ show_github_btn: show });
-    });
-  }
-
-  const toggleCheckUpdates = document.getElementById('toggle-check-updates');
-  if (toggleCheckUpdates) {
-    toggleCheckUpdates.addEventListener('change', async (e) => {
-      const enabled = e.target.checked;
-      await updateAppSetting({ check_for_updates: enabled });
-      if (enabled) {
-        await triggerCheckUpdate(false);
-      } else {
-        const updateBadge = document.getElementById('nav-update-badge');
-        if (updateBadge) updateBadge.classList.add('hidden');
-        const settingsBadge = document.getElementById('settings-update-badge');
-        if (settingsBadge) settingsBadge.classList.add('hidden');
-        const settingsDesc = document.getElementById('settings-update-desc');
-        if (settingsDesc) settingsDesc.textContent = 'Update checks disabled';
-      }
-    });
-  }
-
-  const btnCheckNow = document.getElementById('btn-check-update-now');
-  if (btnCheckNow) {
-    btnCheckNow.addEventListener('click', () => triggerCheckUpdate(true));
-  }
 
   // Close modals on escape key or outside click
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeEditorModal();
       closeLogsModal();
-      closeThemeModal();
       closeSettingsModal();
     }
   });
@@ -139,7 +99,6 @@ function initEventListeners() {
       if (e.target === overlay) {
         closeEditorModal();
         closeLogsModal();
-        closeThemeModal();
         closeSettingsModal();
       }
     });
@@ -701,508 +660,899 @@ function escapeHtml(str) {
 }
 
 /* ==========================================================================
-   Theme Management & Customization System
+   Settings, Themes & Integration System (AppIndex Model)
    ========================================================================== */
 
-const BUILTIN_THEMES = {
-  "dark-slate": {
-    name: "Dark Slate (Default)",
-    builtin: true,
-    vars: {
-      "--bg-base": "#0c111a",
-      "--bg-surface": "#141c2b",
-      "--bg-card": "#182235",
-      "--bg-card-hover": "#1f2c42",
-      "--border-color": "#27374f",
-      "--border-subtle": "#1e2b3f",
-      "--text-main": "#f1f5f9",
-      "--text-muted": "#94a3b8",
-      "--primary": "#3b82f6",
-      "--accent": "#8b5cf6",
-      "--success": "#10b981",
-      "--warning": "#f59e0b"
-    }
+const STORAGE_KEY = "podman_dashboard_settings_v1";
+
+const PRESET_THEMES = {
+  "catppuccin": {
+    name: "Catppuccin Macchiato",
+    colors: {
+      "--bg-primary": "#181926",
+      "--bg-secondary": "#1e2030",
+      "--bg-card": "#24273a",
+      "--bg-card-hover": "#2b2f46",
+      "--border-color": "#363a4f",
+      "--text-primary": "#cad3f5",
+      "--text-secondary": "#a5adcb",
+      "--text-muted": "#8087a2",
+      "--accent-blue": "#8aadf4",
+      "--accent-purple": "#c6a0f6",
+      "--accent-orange": "#f5a97f",
+      "--accent-green": "#a6da95",
+      "--accent-red": "#ed8796"
+    },
+    swatches: ["#181926", "#24273a", "#8aadf4", "#c6a0f6"]
   },
-  "oled-black": {
-    name: "OLED Pure Black",
-    builtin: true,
-    vars: {
-      "--bg-base": "#000000",
-      "--bg-surface": "#0a0a0a",
-      "--bg-card": "#121212",
-      "--bg-card-hover": "#1c1c1c",
-      "--border-color": "#262626",
-      "--border-subtle": "#171717",
-      "--text-main": "#ffffff",
-      "--text-muted": "#a3a3a3",
-      "--primary": "#3b82f6",
-      "--accent": "#a855f7",
-      "--success": "#22c55e",
-      "--warning": "#eab308"
-    }
+  "tokyo-night": {
+    name: "Tokyo Night",
+    colors: {
+      "--bg-primary": "#1a1b26",
+      "--bg-secondary": "#16161e",
+      "--bg-card": "#24283b",
+      "--bg-card-hover": "#2f354f",
+      "--border-color": "#292e42",
+      "--text-primary": "#c0caf5",
+      "--text-secondary": "#9aa5ce",
+      "--text-muted": "#565f89",
+      "--accent-blue": "#7aa2f7",
+      "--accent-purple": "#bb9af7",
+      "--accent-orange": "#ff9e64",
+      "--accent-green": "#9ece6a",
+      "--accent-red": "#f7768e"
+    },
+    swatches: ["#1a1b26", "#24283b", "#7aa2f7", "#bb9af7"]
   },
   "nord": {
-    name: "Nord Frost",
-    builtin: true,
-    vars: {
-      "--bg-base": "#242933",
-      "--bg-surface": "#2e3440",
+    name: "Nord",
+    colors: {
+      "--bg-primary": "#2e3440",
+      "--bg-secondary": "#242933",
       "--bg-card": "#3b4252",
       "--bg-card-hover": "#434c5e",
       "--border-color": "#4c566a",
-      "--border-subtle": "#3b4252",
-      "--text-main": "#eceff4",
-      "--text-muted": "#d8dee9",
-      "--primary": "#88c0d0",
-      "--accent": "#b48ead",
-      "--success": "#a3be8c",
-      "--warning": "#ebcb8b"
-    }
+      "--text-primary": "#eceff4",
+      "--text-secondary": "#e5e9f0",
+      "--text-muted": "#81a1c1",
+      "--accent-blue": "#88c0d0",
+      "--accent-purple": "#b48ead",
+      "--accent-orange": "#d08770",
+      "--accent-green": "#a3be8c",
+      "--accent-red": "#bf616a"
+    },
+    swatches: ["#2e3440", "#3b4252", "#88c0d0", "#b48ead"]
   },
-  "catppuccin-mocha": {
-    name: "Catppuccin Mocha",
-    builtin: true,
-    vars: {
-      "--bg-base": "#11111b",
-      "--bg-surface": "#181825",
-      "--bg-card": "#1e1e2e",
-      "--bg-card-hover": "#313244",
-      "--border-color": "#45475a",
-      "--border-subtle": "#313244",
-      "--text-main": "#cdd6f4",
-      "--text-muted": "#a6adc8",
-      "--primary": "#89b4fa",
-      "--accent": "#cba6f7",
-      "--success": "#a6e3a1",
-      "--warning": "#f9e2af"
-    }
+  "gruvbox": {
+    name: "Gruvbox Dark",
+    colors: {
+      "--bg-primary": "#1d2021",
+      "--bg-secondary": "#282828",
+      "--bg-card": "#32302f",
+      "--bg-card-hover": "#3c3836",
+      "--border-color": "#504945",
+      "--text-primary": "#ebdbb2",
+      "--text-secondary": "#d5c4a1",
+      "--text-muted": "#928374",
+      "--accent-blue": "#83a598",
+      "--accent-purple": "#d3869b",
+      "--accent-orange": "#fe8019",
+      "--accent-green": "#b8bb26",
+      "--accent-red": "#fb4934"
+    },
+    swatches: ["#1d2021", "#32302f", "#83a598", "#fe8019"]
+  },
+  "dracula": {
+    name: "Dracula",
+    colors: {
+      "--bg-primary": "#21222c",
+      "--bg-secondary": "#282a36",
+      "--bg-card": "#343746",
+      "--bg-card-hover": "#44475a",
+      "--border-color": "#6272a4",
+      "--text-primary": "#f8f8f2",
+      "--text-secondary": "#e2e2dc",
+      "--text-muted": "#9ea8c7",
+      "--accent-blue": "#8be9fd",
+      "--accent-purple": "#bd93f9",
+      "--accent-orange": "#ffb86c",
+      "--accent-green": "#50fa7b",
+      "--accent-red": "#ff5555"
+    },
+    swatches: ["#21222c", "#343746", "#8be9fd", "#bd93f9"]
   },
   "cyberpunk": {
-    name: "Cyberpunk Neon",
-    builtin: true,
-    vars: {
-      "--bg-base": "#0d0221",
-      "--bg-surface": "#19053b",
-      "--bg-card": "#260b54",
-      "--bg-card-hover": "#381077",
-      "--border-color": "#ff007f",
-      "--border-subtle": "#4d1082",
-      "--text-main": "#fdfdfd",
-      "--text-muted": "#b8a3e0",
-      "--primary": "#00f0ff",
-      "--accent": "#ff007f",
-      "--success": "#00ff66",
-      "--warning": "#ffe600"
-    }
+    name: "Cyberpunk",
+    colors: {
+      "--bg-primary": "#0d0e15",
+      "--bg-secondary": "#141622",
+      "--bg-card": "#1a1d2e",
+      "--bg-card-hover": "#262b45",
+      "--border-color": "#2f3659",
+      "--text-primary": "#e6e6f0",
+      "--text-secondary": "#a0a5c0",
+      "--text-muted": "#6a7090",
+      "--accent-blue": "#00f0ff",
+      "--accent-purple": "#ff007f",
+      "--accent-orange": "#ffb800",
+      "--accent-green": "#05ffa1",
+      "--accent-red": "#ff2a5f"
+    },
+    swatches: ["#0d0e15", "#1a1d2e", "#00f0ff", "#ff007f"]
   },
-  "light-clean": {
+  "clean-light": {
     name: "Clean Light",
-    builtin: true,
-    vars: {
-      "--bg-base": "#f8fafc",
-      "--bg-surface": "#f1f5f9",
+    colors: {
+      "--bg-primary": "#f8fafc",
+      "--bg-secondary": "#f1f5f9",
       "--bg-card": "#ffffff",
-      "--bg-card-hover": "#f8fafc",
+      "--bg-card-hover": "#f1f5f9",
       "--border-color": "#cbd5e1",
-      "--border-subtle": "#e2e8f0",
-      "--text-main": "#0f172a",
+      "--text-primary": "#0f172a",
+      "--text-secondary": "#334155",
       "--text-muted": "#64748b",
-      "--primary": "#2563eb",
-      "--accent": "#7c3aed",
-      "--success": "#059669",
-      "--warning": "#d97706"
-    }
+      "--accent-blue": "#2563eb",
+      "--accent-purple": "#7c3aed",
+      "--accent-orange": "#ea580c",
+      "--accent-green": "#16a34a",
+      "--accent-red": "#dc2626"
+    },
+    swatches: ["#f8fafc", "#ffffff", "#2563eb", "#7c3aed"]
   }
 };
 
-const THEME_STORAGE_KEY = 'dashboard_active_theme_key';
-const CUSTOM_THEMES_STORAGE_KEY = 'dashboard_custom_themes';
+const COLOR_PICKER_MAP = [
+  { inputId: "color-bg-primary", hexId: "hex-bg-primary", varName: "--bg-primary" },
+  { inputId: "color-bg-secondary", hexId: "hex-bg-secondary", varName: "--bg-secondary" },
+  { inputId: "color-bg-card", hexId: "hex-bg-card", varName: "--bg-card" },
+  { inputId: "color-border", hexId: "hex-border", varName: "--border-color" },
+  { inputId: "color-text-primary", hexId: "hex-text-primary", varName: "--text-primary" },
+  { inputId: "color-text-muted", hexId: "hex-text-muted", varName: "--text-muted" },
+  { inputId: "color-accent-blue", hexId: "hex-accent-blue", varName: "--accent-blue" },
+  { inputId: "color-accent-purple", hexId: "hex-accent-purple", varName: "--accent-purple" },
+];
 
-function getCustomThemes() {
+let userSettings = {
+  themeId: "catppuccin",
+  density: "standard",
+  fontScale: 100,
+  customColors: null,
+  savedCustomThemes: {},
+  showAppIndexLink: false,
+  openAppIndexInSameTab: false,
+  appIndexUrl: "http://localhost:8765",
+  showGitHubBtn: true,
+  checkForUpdates: true
+};
+
+let appUpdateData = null;
+let cachedAppVersion = "v1.0.0";
+let cachedGithubRepo = "PlasmaDrifter/podman-systemd-dashboard";
+
+function loadSavedSettings() {
   try {
-    const raw = localStorage.getItem(CUSTOM_THEMES_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch (e) {
-    return {};
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      userSettings = {
+        themeId: parsed.themeId || "catppuccin",
+        density: parsed.density || "standard",
+        fontScale: typeof parsed.fontScale === "number" ? parsed.fontScale : 100,
+        customColors: parsed.customColors || null,
+        savedCustomThemes: parsed.savedCustomThemes || {},
+        showAppIndexLink: Boolean(parsed.showAppIndexLink),
+        openAppIndexInSameTab: Boolean(parsed.openAppIndexInSameTab),
+        appIndexUrl: parsed.appIndexUrl || "http://localhost:8765",
+        showGitHubBtn: parsed.showGitHubBtn !== undefined ? Boolean(parsed.showGitHubBtn) : true,
+        checkForUpdates: parsed.checkForUpdates !== undefined ? Boolean(parsed.checkForUpdates) : true
+      };
+    }
+  } catch (err) {
+    console.warn("Could not load settings from localStorage:", err);
   }
+
+  // Asynchronously sync with backend metadata/settings
+  fetch("/api/settings")
+    .then((r) => r.json())
+    .then((data) => {
+      if (data && data.status === "ok") {
+        if (data.app_version) cachedAppVersion = data.app_version;
+        if (data.github_repo) cachedGithubRepo = data.github_repo;
+        const s = data.settings || {};
+        if (s.show_appindex_link !== undefined) userSettings.showAppIndexLink = Boolean(s.show_appindex_link);
+        if (s.open_appindex_same_tab !== undefined) userSettings.openAppIndexInSameTab = Boolean(s.open_appindex_same_tab);
+        if (s.appindex_url) userSettings.appIndexUrl = s.appindex_url;
+        if (s.show_github_btn !== undefined) userSettings.showGitHubBtn = Boolean(s.show_github_btn);
+        if (s.check_for_updates !== undefined) userSettings.checkForUpdates = Boolean(s.check_for_updates);
+
+        if (data.update_info) {
+          appUpdateData = data.update_info;
+          renderUpdateUI(appUpdateData);
+        }
+        applyAllActiveSettings();
+        syncSettingsUI();
+      }
+    })
+    .catch(() => {});
 }
 
-function saveCustomThemes(themes) {
-  localStorage.setItem(CUSTOM_THEMES_STORAGE_KEY, JSON.stringify(themes));
+function saveSettingsToStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(userSettings));
+  } catch (err) {
+    console.warn("Could not save settings to localStorage:", err);
+  }
+
+  // Persist companion and integration settings to backend metadata
+  fetch("/api/settings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      show_github_btn: userSettings.showGitHubBtn,
+      check_for_updates: userSettings.checkForUpdates,
+      show_appindex_link: userSettings.showAppIndexLink,
+      open_appindex_same_tab: userSettings.openAppIndexInSameTab,
+      appindex_url: userSettings.appIndexUrl
+    })
+  }).catch((err) => {
+    console.warn("Could not save settings to backend:", err);
+  });
 }
 
-function getAllThemes() {
-  return { ...BUILTIN_THEMES, ...getCustomThemes() };
+function applyAllActiveSettings() {
+  // Apply Theme
+  if (userSettings.themeId === "custom" && userSettings.customColors) {
+    applyThemeColors(userSettings.customColors);
+  } else if (PRESET_THEMES[userSettings.themeId]) {
+    applyThemeColors(PRESET_THEMES[userSettings.themeId].colors);
+  } else if (userSettings.savedCustomThemes && userSettings.savedCustomThemes[userSettings.themeId]) {
+    applyThemeColors(userSettings.savedCustomThemes[userSettings.themeId]);
+  } else {
+    applyThemeColors(PRESET_THEMES["catppuccin"].colors);
+  }
+
+  // Apply Density
+  applyDensity(userSettings.density);
+
+  // Apply Font Scale
+  applyFontScale(userSettings.fontScale);
+
+  // Apply AppIndex Companion Nav Link
+  applyAppIndexNav();
+
+  // Apply GitHub Nav Button
+  applyGitHubNav();
 }
 
-function applyThemeVariables(vars) {
+function applyThemeColors(colorsObj) {
+  if (!colorsObj) return;
   const root = document.documentElement;
-  for (const [key, val] of Object.entries(vars)) {
+  const savedFontScale = root.style.getPropertyValue("--font-scale");
+  root.removeAttribute("style");
+  if (savedFontScale) {
+    root.style.setProperty("--font-scale", savedFontScale);
+  }
+
+  for (const [key, val] of Object.entries(colorsObj)) {
     root.style.setProperty(key, val);
   }
+
+  // Sync dashboard theme aliases
+  if (colorsObj["--bg-primary"]) root.style.setProperty("--bg-base", colorsObj["--bg-primary"]);
+  if (colorsObj["--bg-secondary"]) root.style.setProperty("--bg-surface", colorsObj["--bg-secondary"]);
+  if (colorsObj["--text-primary"]) root.style.setProperty("--text-main", colorsObj["--text-primary"]);
+  if (colorsObj["--accent-blue"]) {
+    root.style.setProperty("--primary", colorsObj["--accent-blue"]);
+    root.style.setProperty("--primary-hover", colorsObj["--accent-blue"]);
+  }
+  if (colorsObj["--accent-purple"]) {
+    root.style.setProperty("--accent", colorsObj["--accent-purple"]);
+    root.style.setProperty("--accent-hover", colorsObj["--accent-purple"]);
+  }
+  if (colorsObj["--accent-green"]) root.style.setProperty("--success", colorsObj["--accent-green"]);
+  if (colorsObj["--accent-orange"]) root.style.setProperty("--warning", colorsObj["--accent-orange"]);
+  if (colorsObj["--accent-red"]) root.style.setProperty("--danger", colorsObj["--accent-red"]);
 }
 
-function initThemeManager() {
-  const allThemes = getAllThemes();
-  let activeKey = localStorage.getItem(THEME_STORAGE_KEY) || 'dark-slate';
-  if (!allThemes[activeKey]) {
-    activeKey = 'dark-slate';
+function applyDensity(density) {
+  if (!document.body) return;
+  document.body.classList.remove("density-compact", "density-standard", "density-spacious");
+  document.body.classList.add("density-" + (density || "standard"));
+}
+
+function applyFontScale(scaleVal) {
+  const scale = (scaleVal || 100) / 100;
+  document.documentElement.style.setProperty("--font-scale", scale.toString());
+}
+
+function applyAppIndexNav() {
+  const link = document.getElementById("nav-appindex-link");
+  if (!link) return;
+  const show = Boolean(userSettings.showAppIndexLink);
+  link.style.display = show ? "inline-flex" : "none";
+  link.href = userSettings.appIndexUrl || "http://localhost:8765";
+
+  const arrow = link.querySelector(".nav-external-arrow");
+  if (userSettings.openAppIndexInSameTab) {
+    link.target = "_self";
+    link.removeAttribute("rel");
+    if (arrow) arrow.style.display = "none";
+  } else {
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    if (arrow) arrow.style.display = "";
   }
-  applyTheme(activeKey, false);
+}
 
-  // Bind color input pickers to live changes & hex sync
-  document.querySelectorAll('.color-picker-wrapper').forEach(wrapper => {
-    const colorInput = wrapper.querySelector('input[type="color"]');
-    const hexInput = wrapper.querySelector('.color-hex-text');
-    const cssVar = colorInput.dataset.var;
+function applyGitHubNav() {
+  const link = document.getElementById("nav-github-link");
+  if (link) {
+    link.style.display = userSettings.showGitHubBtn ? "inline-flex" : "none";
+  }
+}
 
-    colorInput.addEventListener('input', (e) => {
-      const val = e.target.value;
-      hexInput.value = val;
-      document.documentElement.style.setProperty(cssVar, val);
-    });
+function checkAppUpdatesAsync(force = false) {
+  if (!userSettings.checkForUpdates) {
+    clearUpdateIndicator();
+    return;
+  }
 
-    hexInput.addEventListener('change', (e) => {
-      let val = e.target.value.trim();
-      if (!val.startsWith('#')) val = '#' + val;
-      if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
-        colorInput.value = val;
-        document.documentElement.style.setProperty(cssVar, val);
+  const url = force ? "/api/check-update?force=1" : "/api/check-update";
+  fetch(url, { method: force ? "POST" : "GET" })
+    .then((r) => r.json())
+    .then((data) => {
+      if (data && data.update_info) {
+        appUpdateData = data.update_info;
+        renderUpdateUI(data.update_info);
       }
+    })
+    .catch((err) => {
+      console.warn("Could not check for updates:", err);
     });
-  });
+}
 
-  // Reset theme button
-  document.getElementById('btn-reset-theme').addEventListener('click', () => {
-    applyTheme('dark-slate', true);
-    showToast('Reset to default Dark Slate theme');
-  });
+function renderUpdateUI(info) {
+  const ghLink = document.getElementById("nav-github-link");
+  const navBadge = document.getElementById("nav-update-badge");
+  const statusBadge = document.getElementById("update-status-badge");
 
-  // Save as new theme button
-  document.getElementById('btn-save-custom-theme').addEventListener('click', () => {
-    const nameInput = document.getElementById('custom-theme-name');
-    const themeName = nameInput.value.trim();
-    if (!themeName) {
-      showToast('Please enter a theme name', 'error');
-      return;
+  if (!userSettings.checkForUpdates) {
+    clearUpdateIndicator();
+    return;
+  }
+
+  if (info && info.has_update) {
+    const cleanVer = info.latest_version.startsWith("v") ? info.latest_version : `v${info.latest_version}`;
+
+    if (ghLink) {
+      ghLink.classList.add("has-update");
+      if (info.release_url) ghLink.href = info.release_url;
+      ghLink.title = `Update available (${info.latest_version}) - Click to view release`;
     }
-
-    // Collect currently configured CSS variables from the inputs
-    const currentVars = {};
-    document.querySelectorAll('.color-picker-wrapper input[type="color"]').forEach(input => {
-      currentVars[input.dataset.var] = input.value;
-    });
-
-    const key = 'custom-' + themeName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const customThemes = getCustomThemes();
-    customThemes[key] = {
-      name: themeName,
-      builtin: false,
-      vars: currentVars
-    };
-
-    saveCustomThemes(customThemes);
-    nameInput.value = '';
-    applyTheme(key, true);
-    showToast(`Saved and activated "${themeName}" theme!`);
-  });
-}
-
-function applyTheme(themeKey, persist = true) {
-  const allThemes = getAllThemes();
-  const theme = allThemes[themeKey] || BUILTIN_THEMES['dark-slate'];
-
-  if (theme && theme.vars) {
-    applyThemeVariables(theme.vars);
-  }
-
-  if (persist) {
-    localStorage.setItem(THEME_STORAGE_KEY, themeKey);
-  }
-
-  // Sync inputs and active cards with active theme
-  syncThemeCustomizerUI(themeKey);
-}
-
-function renderPresetCard(key, theme, activeKey) {
-  const card = document.createElement('div');
-  card.className = `theme-preset-card ${key === activeKey ? 'active' : ''}`;
-  card.dataset.themeKey = key;
-
-  const top = document.createElement('div');
-  top.className = 'theme-preset-top';
-
-  const name = document.createElement('span');
-  name.className = 'theme-preset-name';
-  name.textContent = theme.name;
-  top.appendChild(name);
-
-  if (!theme.builtin) {
-    const delBtn = document.createElement('button');
-    delBtn.className = 'theme-preset-delete';
-    delBtn.innerHTML = '&times;';
-    delBtn.title = 'Delete custom theme';
-    delBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const customThemes = getCustomThemes();
-      delete customThemes[key];
-      saveCustomThemes(customThemes);
-      if (activeKey === key) {
-        applyTheme('dark-slate', true);
-      } else {
-        syncThemeCustomizerUI(activeKey);
-      }
-      showToast(`Deleted theme "${theme.name}"`);
-    });
-    top.appendChild(delBtn);
-  }
-
-  const swatches = document.createElement('div');
-  swatches.className = 'theme-preset-swatches';
-
-  // Preview key colors
-  const previewColors = [
-    theme.vars["--bg-base"] || "#000",
-    theme.vars["--bg-card"] || "#222",
-    theme.vars["--primary"] || "#3b82f6",
-    theme.vars["--accent"] || "#8b5cf6",
-    theme.vars["--success"] || "#10b981"
-  ];
-
-  previewColors.forEach(col => {
-    const sw = document.createElement('div');
-    sw.className = 'theme-preset-swatch';
-    sw.style.backgroundColor = col;
-    swatches.appendChild(sw);
-  });
-
-  card.appendChild(top);
-  card.appendChild(swatches);
-
-  card.addEventListener('click', () => {
-    applyTheme(key, true);
-  });
-
-  return card;
-}
-
-function syncThemeCustomizerUI(themeKey) {
-  const allThemes = getAllThemes();
-  const presetsGallery = document.getElementById('theme-presets-gallery');
-  const customSection = document.getElementById('custom-themes-section');
-  const customGallery = document.getElementById('custom-themes-gallery');
-
-  if (presetsGallery) {
-    presetsGallery.innerHTML = '';
-    // Render Built-in Themes
-    for (const [key, t] of Object.entries(allThemes)) {
-      if (t.builtin) {
-        presetsGallery.appendChild(renderPresetCard(key, t, themeKey));
+    if (navBadge) {
+      navBadge.classList.remove("hidden");
+      navBadge.style.display = "flex";
+      navBadge.title = `Update available: ${info.latest_version}`;
+    }
+    if (statusBadge) {
+      statusBadge.style.display = "inline-block";
+      statusBadge.textContent = `${cleanVer} available`;
+      if (info.release_url) {
+        statusBadge.onclick = () => window.open(info.release_url, "_blank");
       }
     }
+  } else {
+    clearUpdateIndicator();
+  }
+}
+
+function clearUpdateIndicator() {
+  const ghLink = document.getElementById("nav-github-link");
+  const navBadge = document.getElementById("nav-update-badge");
+  const statusBadge = document.getElementById("update-status-badge");
+
+  if (ghLink) {
+    ghLink.classList.remove("has-update");
+    ghLink.href = `https://github.com/${cachedGithubRepo}`;
+    ghLink.title = `GitHub Repository (${cachedAppVersion})`;
+  }
+  if (navBadge) {
+    navBadge.classList.add("hidden");
+    navBadge.style.display = "none";
+  }
+  if (statusBadge) {
+    statusBadge.style.display = "none";
+  }
+}
+
+function initSettingsUI() {
+  renderPresetThemeGrid();
+  renderSavedCustomThemes();
+  syncSettingsUI();
+  bindSettingsInteractiveEvents();
+}
+
+function syncSettingsUI() {
+  // Sync Density Buttons
+  const selector = document.getElementById("density-selector");
+  if (selector) {
+    selector.querySelectorAll(".density-btn").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.density === userSettings.density);
+    });
   }
 
-  if (customGallery && customSection) {
-    customGallery.innerHTML = '';
-    let customCount = 0;
-    for (const [key, t] of Object.entries(allThemes)) {
-      if (!t.builtin) {
-        customGallery.appendChild(renderPresetCard(key, t, themeKey));
-        customCount++;
-      }
-    }
-    customSection.style.display = customCount > 0 ? 'flex' : 'none';
+  // Sync Font Scale
+  const slider = document.getElementById("font-scale-slider");
+  const valBadge = document.getElementById("font-scale-value");
+  if (slider) slider.value = userSettings.fontScale;
+  if (valBadge) valBadge.textContent = userSettings.fontScale + "%";
+
+  // Sync Color Pickers
+  let currentColors = {};
+  if (userSettings.themeId === "custom" && userSettings.customColors) {
+    currentColors = userSettings.customColors;
+  } else if (PRESET_THEMES[userSettings.themeId]) {
+    currentColors = PRESET_THEMES[userSettings.themeId].colors;
+  } else if (userSettings.savedCustomThemes && userSettings.savedCustomThemes[userSettings.themeId]) {
+    currentColors = userSettings.savedCustomThemes[userSettings.themeId];
+  } else {
+    currentColors = PRESET_THEMES["catppuccin"].colors;
+  }
+  updateColorPickersUI(currentColors);
+
+  // Highlight Active Theme Card
+  const presetsGrid = document.getElementById("theme-presets-grid");
+  if (presetsGrid) {
+    presetsGrid.querySelectorAll(".theme-preset-card").forEach((card) => {
+      card.classList.toggle("active", card.dataset.themeId === userSettings.themeId);
+    });
   }
 
-  // Update color inputs from current computed style
-  const compStyle = getComputedStyle(document.documentElement);
-  document.querySelectorAll('.color-picker-wrapper').forEach(wrapper => {
-    const colorInput = wrapper.querySelector('input[type="color"]');
-    const hexInput = wrapper.querySelector('.color-hex-text');
-    const cssVar = colorInput.dataset.var;
-    const computedVal = compStyle.getPropertyValue(cssVar).trim();
+  // Sync Companion Tools (AppIndex)
+  const toggleAppIndex = document.getElementById("toggle-appindex-link");
+  const toggleSameTab = document.getElementById("toggle-appindex-same-tab");
+  const sameTabWrapper = document.getElementById("companion-same-tab-wrapper");
+  const appIndexUrlConfig = document.getElementById("appindex-url-config");
+  const appIndexUrlInput = document.getElementById("appindex-url-input");
+  const toggleGitHub = document.getElementById("toggle-github-btn");
+  const toggleUpdates = document.getElementById("toggle-check-updates");
 
-    if (computedVal.startsWith('#')) {
-      colorInput.value = computedVal;
-      hexInput.value = computedVal;
+  if (toggleGitHub) {
+    toggleGitHub.checked = Boolean(userSettings.showGitHubBtn);
+  }
+  if (toggleUpdates) {
+    toggleUpdates.checked = Boolean(userSettings.checkForUpdates);
+  }
+
+  const statusBadge = document.getElementById("update-status-badge");
+  if (statusBadge) {
+    if (userSettings.checkForUpdates && appUpdateData && appUpdateData.has_update) {
+      statusBadge.style.display = "inline-block";
+      const cleanVer = appUpdateData.latest_version.startsWith("v") ? appUpdateData.latest_version : `v${appUpdateData.latest_version}`;
+      statusBadge.textContent = `${cleanVer} available`;
     } else {
-      // Convert rgb / rgba to hex if needed
-      const rgbMatch = computedVal.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
-      if (rgbMatch) {
-        const hex = "#" + [1, 2, 3].map(i => parseInt(rgbMatch[i], 10).toString(16).padStart(2, '0')).join('');
-        colorInput.value = hex;
-        hexInput.value = hex;
-      }
+      statusBadge.style.display = "none";
     }
+  }
+
+  if (toggleAppIndex) {
+    toggleAppIndex.checked = Boolean(userSettings.showAppIndexLink);
+  }
+  if (toggleSameTab) {
+    toggleSameTab.checked = Boolean(userSettings.openAppIndexInSameTab);
+  }
+  if (sameTabWrapper) {
+    if (userSettings.showAppIndexLink) {
+      sameTabWrapper.classList.remove("toggle-disabled");
+      if (toggleSameTab) toggleSameTab.disabled = false;
+    } else {
+      sameTabWrapper.classList.add("toggle-disabled");
+      if (toggleSameTab) toggleSameTab.disabled = true;
+    }
+  }
+  if (appIndexUrlConfig) {
+    appIndexUrlConfig.style.display = userSettings.showAppIndexLink ? "flex" : "none";
+  }
+  if (appIndexUrlInput) {
+    appIndexUrlInput.value = userSettings.appIndexUrl || "http://localhost:8765";
+  }
+}
+
+function renderPresetThemeGrid() {
+  const presetsGrid = document.getElementById("theme-presets-grid");
+  if (!presetsGrid) return;
+  presetsGrid.innerHTML = "";
+
+  Object.entries(PRESET_THEMES).forEach(([themeId, theme]) => {
+    const card = document.createElement("div");
+    card.className = "theme-preset-card" + (userSettings.themeId === themeId ? " active" : "");
+    card.dataset.themeId = themeId;
+
+    const swatchesHtml = theme.swatches
+      .map((hex) => `<span class="theme-swatch-circle" style="background-color: ${hex};"></span>`)
+      .join("");
+
+    card.innerHTML = `
+      <div class="theme-swatches">${swatchesHtml}</div>
+      <span class="theme-name" title="${theme.name}">${theme.name}</span>
+    `;
+
+    card.addEventListener("click", () => {
+      userSettings.themeId = themeId;
+      userSettings.customColors = null;
+      applyThemeColors(theme.colors);
+      updateColorPickersUI(theme.colors);
+      saveSettingsToStorage();
+      syncSettingsUI();
+      showToast(`Applied ${theme.name}`);
+    });
+
+    presetsGrid.appendChild(card);
   });
 }
 
-function openThemeModal() {
-  const activeKey = localStorage.getItem(THEME_STORAGE_KEY) || 'dark-slate';
-  syncThemeCustomizerUI(activeKey);
-  document.getElementById('theme-modal').classList.add('open');
+function updateColorPickersUI(colorsObj) {
+  COLOR_PICKER_MAP.forEach(({ inputId, hexId, varName }) => {
+    const input = document.getElementById(inputId);
+    const hexSpan = document.getElementById(hexId);
+    if (!input) return;
+
+    let hexVal = colorsObj[varName];
+    if (!hexVal) {
+      hexVal = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    }
+    hexVal = normalizeHex(hexVal);
+
+    input.value = hexVal;
+    if (hexSpan) hexSpan.textContent = hexVal.toUpperCase();
+  });
 }
 
-function closeThemeModal() {
-  document.getElementById('theme-modal').classList.remove('open');
+function normalizeHex(colorStr) {
+  if (!colorStr) return "#000000";
+  colorStr = colorStr.trim();
+  if (colorStr.startsWith("#") && (colorStr.length === 7 || colorStr.length === 4)) {
+    if (colorStr.length === 4) {
+      return "#" + colorStr[1] + colorStr[1] + colorStr[2] + colorStr[2] + colorStr[3] + colorStr[3];
+    }
+    return colorStr;
+  }
+  const match = colorStr.match(/\d+/g);
+  if (match && match.length >= 3) {
+    const r = parseInt(match[0], 10).toString(16).padStart(2, "0");
+    const g = parseInt(match[1], 10).toString(16).padStart(2, "0");
+    const b = parseInt(match[2], 10).toString(16).padStart(2, "0");
+    return `#${r}${g}${b}`;
+  }
+  return "#000000";
 }
 
-// ========================================================
-// Settings & Update Checker
-// ========================================================
-let cachedAppVersion = 'v1.0.0';
-let cachedGithubRepo = 'PlasmaDrifter/podman-systemd-dashboard';
-let isCheckingUpdate = false;
+function renderSavedCustomThemes() {
+  const customSection = document.getElementById("saved-custom-themes-section");
+  const list = document.getElementById("saved-themes-list");
+  if (!list || !customSection) return;
+  const names = Object.keys(userSettings.savedCustomThemes || {});
+
+  if (names.length === 0) {
+    customSection.style.display = "none";
+    list.innerHTML = "";
+    return;
+  }
+
+  customSection.style.display = "block";
+  list.innerHTML = "";
+
+  names.forEach((name) => {
+    const chip = document.createElement("div");
+    chip.className = "saved-theme-chip" + (userSettings.themeId === name ? " active" : "");
+
+    chip.innerHTML = `
+      <button type="button" class="saved-theme-apply-btn">${escapeHtml(name)}</button>
+      <button type="button" class="saved-theme-del-btn" title="Delete theme">&times;</button>
+    `;
+
+    chip.querySelector(".saved-theme-apply-btn").addEventListener("click", () => {
+      userSettings.themeId = name;
+      userSettings.customColors = null;
+      const themeColors = userSettings.savedCustomThemes[name];
+      applyThemeColors(themeColors);
+      updateColorPickersUI(themeColors);
+      saveSettingsToStorage();
+      syncSettingsUI();
+      renderSavedCustomThemes();
+      showToast(`Applied custom theme: ${name}`);
+    });
+
+    chip.querySelector(".saved-theme-del-btn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      delete userSettings.savedCustomThemes[name];
+      if (userSettings.themeId === name) {
+        userSettings.themeId = "catppuccin";
+        applyThemeColors(PRESET_THEMES["catppuccin"].colors);
+      }
+      saveSettingsToStorage();
+      syncSettingsUI();
+      renderSavedCustomThemes();
+      showToast(`Deleted theme: ${name}`);
+    });
+
+    list.appendChild(chip);
+  });
+}
+
+function bindSettingsInteractiveEvents() {
+  // Density selector buttons
+  const selector = document.getElementById("density-selector");
+  if (selector) {
+    selector.querySelectorAll(".density-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const density = btn.dataset.density;
+        userSettings.density = density;
+        applyDensity(density);
+        saveSettingsToStorage();
+        syncSettingsUI();
+      });
+    });
+  }
+
+  // Font scale slider
+  const slider = document.getElementById("font-scale-slider");
+  const valBadge = document.getElementById("font-scale-value");
+  if (slider) {
+    slider.addEventListener("input", (e) => {
+      const val = parseInt(e.target.value, 10);
+      userSettings.fontScale = val;
+      applyFontScale(val);
+      if (valBadge) valBadge.textContent = val + "%";
+      saveSettingsToStorage();
+    });
+  }
+
+  // Quick tick buttons
+  document.querySelectorAll(".tick-btn").forEach((tick) => {
+    tick.addEventListener("click", () => {
+      const val = parseInt(tick.dataset.val, 10);
+      userSettings.fontScale = val;
+      applyFontScale(val);
+      if (slider) slider.value = val;
+      if (valBadge) valBadge.textContent = val + "%";
+      saveSettingsToStorage();
+    });
+  });
+
+  // Color pickers input
+  COLOR_PICKER_MAP.forEach(({ inputId, hexId, varName }) => {
+    const input = document.getElementById(inputId);
+    const hexSpan = document.getElementById(hexId);
+    if (!input) return;
+
+    input.addEventListener("input", (e) => {
+      const val = e.target.value;
+      if (hexSpan) hexSpan.textContent = val.toUpperCase();
+      document.documentElement.style.setProperty(varName, val);
+
+      if (!userSettings.customColors) {
+        userSettings.customColors = {};
+      }
+      userSettings.customColors[varName] = val;
+      userSettings.themeId = "custom";
+
+      if (varName === "--bg-card") {
+        document.documentElement.style.setProperty("--bg-card-hover", val);
+      }
+
+      // Sync legacy aliases
+      if (varName === "--bg-primary") document.documentElement.style.setProperty("--bg-base", val);
+      if (varName === "--bg-secondary") document.documentElement.style.setProperty("--bg-surface", val);
+      if (varName === "--text-primary") document.documentElement.style.setProperty("--text-main", val);
+      if (varName === "--accent-blue") document.documentElement.style.setProperty("--primary", val);
+      if (varName === "--accent-purple") document.documentElement.style.setProperty("--accent", val);
+
+      saveSettingsToStorage();
+      const presetsGrid = document.getElementById("theme-presets-grid");
+      if (presetsGrid) {
+        presetsGrid.querySelectorAll(".theme-preset-card").forEach((c) => c.classList.remove("active"));
+      }
+    });
+  });
+
+  // Save custom theme button
+  const btnSaveTheme = document.getElementById("btn-save-custom-theme");
+  const nameInput = document.getElementById("custom-theme-name");
+  if (btnSaveTheme && nameInput) {
+    btnSaveTheme.addEventListener("click", () => {
+      const name = nameInput.value.trim();
+      if (!name) {
+        showToast("Please enter a name for the custom theme", "error");
+        nameInput.focus();
+        return;
+      }
+
+      const colors = {};
+      COLOR_PICKER_MAP.forEach(({ inputId, varName }) => {
+        const input = document.getElementById(inputId);
+        if (input) colors[varName] = input.value;
+      });
+
+      colors["--bg-card-hover"] = colors["--bg-card"];
+
+      userSettings.savedCustomThemes[name] = colors;
+      userSettings.themeId = name;
+      userSettings.customColors = null;
+      nameInput.value = "";
+
+      saveSettingsToStorage();
+      syncSettingsUI();
+      renderSavedCustomThemes();
+      showToast(`Custom theme "${name}" saved!`);
+    });
+  }
+
+  // Reset to default button
+  const btnReset = document.getElementById("btn-reset-theme");
+  if (btnReset) {
+    btnReset.addEventListener("click", () => {
+      userSettings.themeId = "catppuccin";
+      userSettings.density = "standard";
+      userSettings.fontScale = 100;
+      userSettings.customColors = null;
+      userSettings.showGitHubBtn = true;
+      userSettings.checkForUpdates = true;
+      userSettings.showAppIndexLink = false;
+      userSettings.openAppIndexInSameTab = false;
+      userSettings.appIndexUrl = "http://localhost:8765";
+
+      applyAllActiveSettings();
+      syncSettingsUI();
+      saveSettingsToStorage();
+      if (userSettings.checkForUpdates) {
+        checkAppUpdatesAsync();
+      }
+      showToast("Reset all settings to default");
+    });
+  }
+
+  // Navigation Links & Updates
+  const toggleGitHub = document.getElementById("toggle-github-btn");
+  const toggleUpdates = document.getElementById("toggle-check-updates");
+
+  if (toggleGitHub) {
+    toggleGitHub.addEventListener("change", (e) => {
+      userSettings.showGitHubBtn = e.target.checked;
+      applyGitHubNav();
+      saveSettingsToStorage();
+    });
+  }
+
+  if (toggleUpdates) {
+    toggleUpdates.addEventListener("change", (e) => {
+      userSettings.checkForUpdates = e.target.checked;
+      saveSettingsToStorage();
+      if (e.target.checked) {
+        checkAppUpdatesAsync(true);
+      } else {
+        clearUpdateIndicator();
+      }
+    });
+  }
+
+  // Companion Tools (AppIndex)
+  const toggleAppIndex = document.getElementById("toggle-appindex-link");
+  const toggleSameTab = document.getElementById("toggle-appindex-same-tab");
+  const sameTabWrapper = document.getElementById("companion-same-tab-wrapper");
+  const appIndexUrlConfig = document.getElementById("appindex-url-config");
+  const appIndexUrlInput = document.getElementById("appindex-url-input");
+  const btnResetUrl = document.getElementById("btn-reset-appindex-url");
+
+  if (toggleAppIndex) {
+    toggleAppIndex.addEventListener("change", (e) => {
+      userSettings.showAppIndexLink = e.target.checked;
+      if (appIndexUrlConfig) {
+        appIndexUrlConfig.style.display = e.target.checked ? "flex" : "none";
+      }
+      if (sameTabWrapper) {
+        if (e.target.checked) {
+          sameTabWrapper.classList.remove("toggle-disabled");
+          if (toggleSameTab) toggleSameTab.disabled = false;
+        } else {
+          sameTabWrapper.classList.add("toggle-disabled");
+          if (toggleSameTab) toggleSameTab.disabled = true;
+        }
+      }
+      applyAppIndexNav();
+      saveSettingsToStorage();
+    });
+  }
+
+  if (toggleSameTab) {
+    toggleSameTab.addEventListener("change", (e) => {
+      userSettings.openAppIndexInSameTab = e.target.checked;
+      applyAppIndexNav();
+      saveSettingsToStorage();
+    });
+  }
+
+  if (appIndexUrlInput) {
+    const handleUrlChange = () => {
+      let val = appIndexUrlInput.value.trim();
+      if (!val) {
+        val = "http://localhost:8765";
+        appIndexUrlInput.value = val;
+      }
+      userSettings.appIndexUrl = val;
+      applyAppIndexNav();
+      saveSettingsToStorage();
+    };
+    appIndexUrlInput.addEventListener("change", handleUrlChange);
+    appIndexUrlInput.addEventListener("blur", handleUrlChange);
+  }
+
+  if (btnResetUrl && appIndexUrlInput) {
+    btnResetUrl.addEventListener("click", () => {
+      appIndexUrlInput.value = "http://localhost:8765";
+      userSettings.appIndexUrl = "http://localhost:8765";
+      applyAppIndexNav();
+      saveSettingsToStorage();
+      showToast("Reset AppIndex URL to default");
+    });
+  }
+
+  // Help Popovers Setup
+  const setupPopover = (btnId, popoverId) => {
+    const btn = document.getElementById(btnId);
+    const popover = document.getElementById(popoverId);
+    if (!btn || !popover) return;
+
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isVisible = popover.style.display === "block";
+
+      document.querySelectorAll(".help-popover").forEach((p) => (p.style.display = "none"));
+      document.querySelectorAll(".help-circle-btn").forEach((b) => b.classList.remove("active"));
+
+      popover.style.display = isVisible ? "none" : "block";
+      btn.classList.toggle("active", !isVisible);
+    });
+  };
+
+  setupPopover("appindex-help-btn", "appindex-help-popover");
+  setupPopover("github-help-btn", "github-help-popover");
+
+  document.addEventListener("click", (e) => {
+    document.querySelectorAll(".help-popover").forEach((popover) => {
+      if (!popover.contains(e.target)) {
+        popover.style.display = "none";
+      }
+    });
+    document.querySelectorAll(".help-circle-btn").forEach((btn) => {
+      if (!btn.contains(e.target)) {
+        btn.classList.remove("active");
+      }
+    });
+  });
+}
 
 function openSettingsModal() {
-  document.getElementById('settings-modal').classList.add('open');
+  const modal = document.getElementById("settings-modal");
+  if (modal) {
+    document.querySelectorAll(".help-popover").forEach((p) => (p.style.display = "none"));
+    document.querySelectorAll(".help-circle-btn").forEach((b) => b.classList.remove("active"));
+
+    syncSettingsUI();
+    modal.classList.add("open");
+    modal.style.display = "flex";
+  }
 }
 
 function closeSettingsModal() {
-  document.getElementById('settings-modal').classList.remove('open');
-}
+  const modal = document.getElementById("settings-modal");
+  if (modal) {
+    document.querySelectorAll(".help-popover").forEach((p) => (p.style.display = "none"));
+    document.querySelectorAll(".help-circle-btn").forEach((b) => b.classList.remove("active"));
 
-async function loadSettings() {
-  try {
-    const res = await fetch('/api/settings');
-    if (!res.ok) return;
-    const data = await res.json();
-    if (data.status === 'ok') {
-      const settings = data.settings || {};
-      cachedAppVersion = data.app_version || 'v1.0.0';
-      cachedGithubRepo = data.github_repo || 'PlasmaDrifter/podman-systemd-dashboard';
-
-      // 1. Apply toggle states
-      const toggleGithub = document.getElementById('toggle-github-btn');
-      if (toggleGithub) {
-        toggleGithub.checked = settings.show_github_btn !== false;
-      }
-      const navGithub = document.getElementById('nav-github-link');
-      if (navGithub) {
-        navGithub.style.display = (settings.show_github_btn !== false) ? 'inline-flex' : 'none';
-      }
-
-      const toggleUpdates = document.getElementById('toggle-check-updates');
-      if (toggleUpdates) {
-        toggleUpdates.checked = settings.check_for_updates !== false;
-      }
-
-      const versionPill = document.getElementById('settings-current-version');
-      if (versionPill) {
-        versionPill.textContent = cachedAppVersion;
-      }
-
-      // 2. Apply update info
-      applyUpdateInfo(data.update_info, cachedAppVersion, cachedGithubRepo);
-    }
-  } catch (err) {
-    console.error('Failed to load settings:', err);
+    modal.classList.remove("open");
+    modal.style.display = "none";
   }
 }
 
-function applyUpdateInfo(info, appVersion, repo) {
-  const hasUpdate = info && info.has_update;
-  const latestVersion = (info && info.latest_version) || appVersion;
-  const releaseUrl = (info && info.release_url) || `https://github.com/${repo}/releases`;
-
-  // Top Nav GitHub Icon Link & Pulse Badge
-  const navGithub = document.getElementById('nav-github-link');
-  const navUpdateBadge = document.getElementById('nav-update-badge');
-  if (navGithub) {
-    if (hasUpdate) {
-      navGithub.classList.add('has-update');
-      navGithub.href = releaseUrl;
-      navGithub.title = `Update available (${latestVersion}) - Click to view release`;
-      if (navUpdateBadge) navUpdateBadge.classList.remove('hidden');
-    } else {
-      navGithub.classList.remove('has-update');
-      navGithub.href = `https://github.com/${repo}`;
-      navGithub.title = `GitHub Repository (${appVersion})`;
-      if (navUpdateBadge) navUpdateBadge.classList.add('hidden');
-    }
-  }
-
-  // Settings Modal Update Badge & Description
-  const settingsBadge = document.getElementById('settings-update-badge');
-  const settingsDesc = document.getElementById('settings-update-desc');
-  if (settingsBadge && settingsDesc) {
-    if (hasUpdate) {
-      settingsBadge.textContent = `New: ${latestVersion}`;
-      settingsBadge.href = releaseUrl;
-      settingsBadge.classList.remove('hidden');
-      settingsDesc.textContent = `Update available: ${latestVersion} (Current: ${appVersion})`;
-    } else {
-      settingsBadge.classList.add('hidden');
-      const checkEnabled = info ? info.check_enabled : true;
-      settingsDesc.textContent = checkEnabled 
-        ? `Automatically check GitHub releases (Current: ${appVersion})` 
-        : `Update checks disabled (Current: ${appVersion})`;
-    }
-  }
-}
-
-async function updateAppSetting(payload) {
-  try {
-    const res = await fetch('/api/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) throw new Error('Settings update failed');
-    const data = await res.json();
-    if (data.status === 'ok') {
-      applyUpdateInfo(data.update_info, cachedAppVersion, cachedGithubRepo);
-    }
-  } catch (err) {
-    console.error('Error saving setting:', err);
-    showToast('Failed to update setting', 'error');
-  }
-}
-
-async function triggerCheckUpdate(manual = false) {
-  if (isCheckingUpdate) return;
-  const btn = document.getElementById('btn-check-update-now');
-
-  isCheckingUpdate = true;
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = 'Checking...';
-  }
-
-  try {
-    const res = await fetch('/api/check-update', { method: 'POST' });
-    if (!res.ok) throw new Error('Update check failed');
-    const data = await res.json();
-    if (data.status === 'ok' && data.update_info) {
-      applyUpdateInfo(data.update_info, cachedAppVersion, cachedGithubRepo);
-      if (manual) {
-        if (data.update_info.has_update) {
-          showToast(`Update available: ${data.update_info.latest_version}`);
-        } else {
-          showToast(`Dashboard is up to date (${cachedAppVersion})`);
-        }
-      }
-    }
-  } catch (err) {
-    console.error('Error checking updates:', err);
-    if (manual) showToast('Failed to check for updates', 'error');
-  } finally {
-    // 15-second debounce cooldown
-    setTimeout(() => {
-      isCheckingUpdate = false;
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = 'Check Now';
-      }
-    }, 15000);
-
-    // If still in cooldown, indicate waiting briefly
-    if (btn) {
-      btn.textContent = 'Checked';
-      setTimeout(() => {
-        if (isCheckingUpdate && btn) btn.textContent = 'Cooling down...';
-      }, 2000);
-    }
-  }
-}
 

@@ -62,7 +62,10 @@ def get_settings():
     meta = load_metadata()
     default_settings = {
         "show_github_btn": True,
-        "check_for_updates": True
+        "check_for_updates": True,
+        "show_appindex_link": False,
+        "open_appindex_same_tab": False,
+        "appindex_url": "http://localhost:8765"
     }
     saved = meta.get("settings", {})
     return {**default_settings, **saved}

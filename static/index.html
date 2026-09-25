@@ -21,19 +21,12 @@
       </div>
       <div class="header-right">
         <div class="header-actions-row">
-          <button id="btn-settings-modal" class="btn btn-secondary" title="Dashboard Settings">
+          <button id="btn-settings" class="btn btn-secondary" title="Application Settings">
             <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none">
               <circle cx="12" cy="12" r="3"></circle>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
             </svg>
             <span>Settings</span>
-          </button>
-          <button id="btn-theme-modal" class="btn btn-secondary" title="Theme Settings">
-            <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none">
-              <circle cx="12" cy="12" r="4"/>
-              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
-            </svg>
-            <span>Theme</span>
           </button>
           <button id="btn-scan" class="btn btn-primary">
             <svg class="icon spin-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
@@ -51,6 +44,20 @@
               <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
             </svg>
             <span class="nav-update-badge hidden" id="nav-update-badge" title="Update available">!</span>
+          </a>
+          <a id="nav-appindex-link" href="http://localhost:8765" target="_blank" rel="noopener noreferrer" class="btn btn-secondary nav-appindex-btn" title="Open AppIndex" style="display: none;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span>AppIndex</span>
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" class="nav-external-arrow">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
           </a>
         </div>
       </div>
@@ -148,243 +155,263 @@
     </div>
   </div>
 
-  <!-- Theme Customizer Modal -->
-  <div class="modal-overlay" id="theme-modal">
-    <div class="modal-content theme-modal-content">
-      <div class="modal-header">
-        <div>
-          <h2>Theme & Appearance</h2>
-          <span class="file-path-badge">Customize colors, select presets, or save new custom themes</span>
-        </div>
-        <button class="btn-close" id="btn-close-theme">&times;</button>
-      </div>
-      <div class="modal-body theme-modal-body">
-        <!-- Theme Presets Gallery (Chips/Cards) -->
-        <div class="theme-presets-section">
-          <div class="theme-presets-header">
-            <h3>Preset Themes</h3>
-            <div class="theme-actions-group">
-              <button class="btn btn-sm btn-secondary" id="btn-reset-theme">Reset to Default</button>
-            </div>
-          </div>
-          <div class="theme-presets-grid" id="theme-presets-gallery">
-            <!-- Dynamically populated cards/chips -->
-          </div>
-        </div>
-
-        <!-- Custom Themes Gallery -->
-        <div class="theme-presets-section" id="custom-themes-section" style="display: none;">
-          <div class="theme-presets-header">
-            <h3>Your Custom Themes</h3>
-          </div>
-          <div class="theme-presets-grid" id="custom-themes-gallery">
-            <!-- Dynamically populated custom theme cards -->
-          </div>
-        </div>
-
-        <div class="theme-divider"></div>
-
-        <!-- Color Variable Adjusters -->
-        <div class="theme-customizer-grid">
-          <div class="theme-group">
-            <h3>Backgrounds & Surfaces</h3>
-            <div class="color-item">
-              <label>Page Background</label>
-              <div class="color-picker-wrapper">
-                <input type="color" id="color-bg-base" data-var="--bg-base">
-                <input type="text" class="color-hex-text" data-target="color-bg-base">
-              </div>
-            </div>
-            <div class="color-item">
-              <label>Surface / Panels</label>
-              <div class="color-picker-wrapper">
-                <input type="color" id="color-bg-surface" data-var="--bg-surface">
-                <input type="text" class="color-hex-text" data-target="color-bg-surface">
-              </div>
-            </div>
-            <div class="color-item">
-              <label>Card Background</label>
-              <div class="color-picker-wrapper">
-                <input type="color" id="color-bg-card" data-var="--bg-card">
-                <input type="text" class="color-hex-text" data-target="color-bg-card">
-              </div>
-            </div>
-            <div class="color-item">
-              <label>Card Hover</label>
-              <div class="color-picker-wrapper">
-                <input type="color" id="color-bg-card-hover" data-var="--bg-card-hover">
-                <input type="text" class="color-hex-text" data-target="color-bg-card-hover">
-              </div>
-            </div>
-          </div>
-
-          <div class="theme-group">
-            <h3>Borders & Text</h3>
-            <div class="color-item">
-              <label>Border Color</label>
-              <div class="color-picker-wrapper">
-                <input type="color" id="color-border-color" data-var="--border-color">
-                <input type="text" class="color-hex-text" data-target="color-border-color">
-              </div>
-            </div>
-            <div class="color-item">
-              <label>Border Subtle</label>
-              <div class="color-picker-wrapper">
-                <input type="color" id="color-border-subtle" data-var="--border-subtle">
-                <input type="text" class="color-hex-text" data-target="color-border-subtle">
-              </div>
-            </div>
-            <div class="color-item">
-              <label>Primary Text</label>
-              <div class="color-picker-wrapper">
-                <input type="color" id="color-text-main" data-var="--text-main">
-                <input type="text" class="color-hex-text" data-target="color-text-main">
-              </div>
-            </div>
-            <div class="color-item">
-              <label>Muted Text</label>
-              <div class="color-picker-wrapper">
-                <input type="color" id="color-text-muted" data-var="--text-muted">
-                <input type="text" class="color-hex-text" data-target="color-text-muted">
-              </div>
-            </div>
-          </div>
-
-          <div class="theme-group">
-            <h3>Accents & Highlights</h3>
-            <div class="color-item">
-              <label>Primary Accent</label>
-              <div class="color-picker-wrapper">
-                <input type="color" id="color-primary" data-var="--primary">
-                <input type="text" class="color-hex-text" data-target="color-primary">
-              </div>
-            </div>
-            <div class="color-item">
-              <label>Secondary Accent</label>
-              <div class="color-picker-wrapper">
-                <input type="color" id="color-accent" data-var="--accent">
-                <input type="text" class="color-hex-text" data-target="color-accent">
-              </div>
-            </div>
-            <div class="color-item">
-              <label>Success / Running</label>
-              <div class="color-picker-wrapper">
-                <input type="color" id="color-success" data-var="--success">
-                <input type="text" class="color-hex-text" data-target="color-success">
-              </div>
-            </div>
-            <div class="color-item">
-              <label>Warning / Alert</label>
-              <div class="color-picker-wrapper">
-                <input type="color" id="color-warning" data-var="--warning">
-                <input type="text" class="color-hex-text" data-target="color-warning">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Save As New Theme Form -->
-        <div class="theme-save-box">
-          <div class="theme-save-input-group">
-            <input type="text" id="custom-theme-name" placeholder="Name for your new theme..." class="theme-name-input">
-            <button class="btn btn-primary" id="btn-save-custom-theme">Save As New Theme</button>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" id="btn-done-theme">Done</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Settings Modal -->
-  <div class="modal-overlay" id="settings-modal">
+  <!-- Application Settings Modal -->
+  <div class="modal-overlay" id="settings-modal" style="display: none;">
     <div class="modal-content settings-modal-content">
       <div class="modal-header">
-        <div>
-          <h2>Settings</h2>
-          <span class="file-path-badge">Application Preferences &amp; Updates</span>
+        <div class="modal-title-group">
+          <div class="settings-header-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </div>
+          <div>
+            <h2>Application Settings</h2>
+            <span class="modal-subtitle">Customize themes, view density, and typography scaling</span>
+          </div>
         </div>
-        <button class="btn-close" id="btn-close-settings">&times;</button>
+        <button class="modal-close" id="settings-close-btn" title="Close">&times;</button>
       </div>
+
       <div class="modal-body settings-modal-body">
-        <!-- Updates Section -->
-        <div class="settings-card-section">
-          <div class="settings-card-header">
-            <h3>Version &amp; Updates</h3>
+        <!-- Row 1: View Density & Font Size Scale side-by-side -->
+        <div class="settings-row-2col">
+          <!-- View Density -->
+          <div class="settings-section">
+            <h3 class="settings-section-title">View Density</h3>
+            <div class="density-selector" id="density-selector">
+              <button type="button" class="density-btn" data-density="compact">
+                <span class="density-title">Compact</span>
+                <span class="density-sub">Tight padding</span>
+              </button>
+              <button type="button" class="density-btn active" data-density="standard">
+                <span class="density-title">Standard</span>
+                <span class="density-sub">Default spacing</span>
+              </button>
+              <button type="button" class="density-btn" data-density="spacious">
+                <span class="density-title">Spacious</span>
+                <span class="density-sub">Relaxed padding</span>
+              </button>
+            </div>
           </div>
-          <div class="setting-item-row">
-            <div class="setting-item-info">
-              <div class="setting-item-title">
-                Current Version
-                <span class="settings-version-pill" id="settings-current-version">v1.0.0</span>
-                <a href="https://github.com/PlasmaDrifter/podman-systemd-dashboard/releases" target="_blank" rel="noopener noreferrer" class="settings-update-badge hidden" id="settings-update-badge">New: v1.0.1</a>
+
+          <!-- Font Size Scaling -->
+          <div class="settings-section">
+            <div class="section-title-row">
+              <h3 class="settings-section-title">Font Size Scale</h3>
+              <span id="font-scale-value" class="font-scale-badge">100%</span>
+            </div>
+            <div class="font-slider-container">
+              <input type="range" id="font-scale-slider" min="80" max="130" step="5" value="100" class="font-slider">
+              <div class="font-slider-ticks">
+                <span class="tick-btn" data-val="85">Small (85%)</span>
+                <span class="tick-btn" data-val="100">Default (100%)</span>
+                <span class="tick-btn" data-val="115">Large (115%)</span>
+                <span class="tick-btn" data-val="130">Max (130%)</span>
               </div>
-              <div class="setting-item-desc" id="settings-update-desc">
-                Latest release status
-              </div>
-            </div>
-            <div class="setting-item-controls">
-              <button class="btn btn-sm btn-secondary" id="btn-check-update-now" title="Check for updates immediately">Check Now</button>
-            </div>
-          </div>
-          <div class="setting-item-row">
-            <div class="setting-item-info">
-              <div class="setting-item-title">Automatic Update Checks</div>
-              <div class="setting-item-desc">Periodically check GitHub releases in the background (1-hour cache)</div>
-            </div>
-            <div class="setting-item-controls">
-              <label class="toggle-switch" title="Toggle automatic update checks">
-                <input type="checkbox" id="toggle-check-updates" checked>
-                <span class="toggle-slider"></span>
-              </label>
             </div>
           </div>
         </div>
 
-        <!-- Interface Section -->
-        <div class="settings-card-section">
-          <div class="settings-card-header">
-            <h3>Interface</h3>
+        <!-- Row 2: Preset Themes -->
+        <div class="settings-section">
+          <div class="section-title-row">
+            <div>
+              <h3 class="settings-section-title">Color Themes</h3>
+            </div>
+            <button id="btn-reset-theme" class="btn btn-outline btn-xs">Reset to Default</button>
           </div>
-          <div class="setting-item-row">
-            <div class="setting-item-info">
-              <div class="setting-item-title">GitHub Quick Link</div>
-              <div class="setting-item-desc">Show GitHub shortcut icon on the right of Scan Now</div>
-            </div>
-            <div class="setting-item-controls">
-              <label class="toggle-switch" title="Toggle GitHub icon on top bar">
-                <input type="checkbox" id="toggle-github-btn" checked>
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
+          <div class="theme-presets-grid" id="theme-presets-grid">
+            <!-- Dynamically populated by JS -->
           </div>
         </div>
 
-        <!-- Repository & Source Section -->
-        <div class="settings-card-section">
-          <div class="settings-card-header">
-            <h3>About</h3>
+        <!-- Row 3: Custom Theme Builder -->
+        <div class="settings-section" id="custom-theme-section">
+          <h3 class="settings-section-title">Customize Theme Elements</h3>
+          <div class="color-pickers-grid">
+            <div class="color-picker-item">
+              <label for="color-bg-primary">App Background</label>
+              <div class="color-input-wrapper">
+                <input type="color" id="color-bg-primary" value="#181926">
+                <span class="color-hex" id="hex-bg-primary">#181926</span>
+              </div>
+            </div>
+            <div class="color-picker-item">
+              <label for="color-bg-secondary">Bar &amp; Surface</label>
+              <div class="color-input-wrapper">
+                <input type="color" id="color-bg-secondary" value="#1e2030">
+                <span class="color-hex" id="hex-bg-secondary">#1e2030</span>
+              </div>
+            </div>
+            <div class="color-picker-item">
+              <label for="color-bg-card">Card / Table Header</label>
+              <div class="color-input-wrapper">
+                <input type="color" id="color-bg-card" value="#24273a">
+                <span class="color-hex" id="hex-bg-card">#24273a</span>
+              </div>
+            </div>
+            <div class="color-picker-item">
+              <label for="color-border">Border Color</label>
+              <div class="color-input-wrapper">
+                <input type="color" id="color-border" value="#363a4f">
+                <span class="color-hex" id="hex-border">#363a4f</span>
+              </div>
+            </div>
+            <div class="color-picker-item">
+              <label for="color-text-primary">Primary Text</label>
+              <div class="color-input-wrapper">
+                <input type="color" id="color-text-primary" value="#cad3f5">
+                <span class="color-hex" id="hex-text-primary">#cad3f5</span>
+              </div>
+            </div>
+            <div class="color-picker-item">
+              <label for="color-text-muted">Muted Text</label>
+              <div class="color-input-wrapper">
+                <input type="color" id="color-text-muted" value="#8087a2">
+                <span class="color-hex" id="hex-text-muted">#8087a2</span>
+              </div>
+            </div>
+            <div class="color-picker-item">
+              <label for="color-accent-blue">Primary Accent</label>
+              <div class="color-input-wrapper">
+                <input type="color" id="color-accent-blue" value="#8aadf4">
+                <span class="color-hex" id="hex-accent-blue">#8aadf4</span>
+              </div>
+            </div>
+            <div class="color-picker-item">
+              <label for="color-accent-purple">Secondary Accent</label>
+              <div class="color-input-wrapper">
+                <input type="color" id="color-accent-purple" value="#c6a0f6">
+                <span class="color-hex" id="hex-accent-purple">#c6a0f6</span>
+              </div>
+            </div>
           </div>
-          <div class="setting-item-row">
-            <div class="setting-item-info">
-              <div class="setting-item-title">GitHub Repository</div>
-              <div class="setting-item-desc">Browse source code, releases, and documentation</div>
+
+          <!-- Save Custom Theme Form -->
+          <div class="save-custom-theme-row">
+            <input type="text" id="custom-theme-name" placeholder="Name your custom theme..." maxlength="30" class="theme-name-input">
+            <button id="btn-save-custom-theme" class="btn btn-primary btn-sm">Save Theme</button>
+          </div>
+
+          <!-- Saved Custom Themes List -->
+          <div id="saved-custom-themes-section" style="margin-top: 6px; display: none;">
+            <span class="preview-label" style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Your Saved Custom Themes:</span>
+            <div class="saved-themes-list" id="saved-themes-list"></div>
+          </div>
+        </div>
+
+        <!-- Row 4: Navigation Links & Updates -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">Navigation Links &amp; Updates</h3>
+
+          <div class="integrations-grid">
+            <!-- Column 1: GitHub Integration -->
+            <div class="integration-card">
+              <div class="integration-card-header">
+                <div class="integration-header-title">
+                  <svg class="integration-header-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                  </svg>
+                  <span>GitHub Integration</span>
+                </div>
+                <div class="help-popover-container">
+                  <button type="button" id="github-help-btn" class="help-circle-btn" aria-label="About GitHub Updates" title="About GitHub Updates">?</button>
+                  <div id="github-help-popover" class="help-popover" style="display: none;">
+                    <div class="help-popover-header">
+                      <strong>GitHub Updates &amp; Releases</strong>
+                    </div>
+                    <p class="help-popover-text">
+                      Asynchronously checks GitHub for newer releases on startup using semantic version comparison. Checks are cached for 1 hour to prevent API rate limits.
+                    </p>
+                    <p class="help-popover-text" style="margin-top: 6px;">
+                      When a new release is available, an animated badge indicator appears on the navigation GitHub icon and links directly to release notes.
+                    </p>
+                    <div class="help-popover-footer">
+                      <a href="https://github.com/PlasmaDrifter/podman-systemd-dashboard" target="_blank" rel="noopener noreferrer" class="help-popover-link">
+                        View Repository &rarr;
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="integration-card-body">
+                <label class="toggle-label" for="toggle-github-btn">
+                  <input type="checkbox" id="toggle-github-btn" checked>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-text">Show GitHub button</span>
+                </label>
+
+                <label class="toggle-label" for="toggle-check-updates">
+                  <input type="checkbox" id="toggle-check-updates" checked>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-text">Check for updates</span>
+                  <span id="update-status-badge" class="update-status-badge" style="display: none;"></span>
+                </label>
+              </div>
             </div>
-            <div class="setting-item-controls">
-              <a href="https://github.com/PlasmaDrifter/podman-systemd-dashboard" target="_blank" rel="noopener noreferrer" class="btn-github-link" title="Open GitHub Repository">
-                <svg class="github-icon" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                </svg>
-                <span>PlasmaDrifter/podman-systemd-dashboard</span>
-                <span class="github-link-arrow">&nearr;</span>
-              </a>
+
+            <!-- Column 2: AppIndex Companion Tool -->
+            <div class="integration-card">
+              <div class="integration-card-header">
+                <div class="integration-header-title">
+                  <svg class="integration-header-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                  </svg>
+                  <span>AppIndex</span>
+                </div>
+                <div class="help-popover-container">
+                  <button type="button" id="appindex-help-btn" class="help-circle-btn" aria-label="About AppIndex" title="About AppIndex">?</button>
+                  <div id="appindex-help-popover" class="help-popover" style="display: none;">
+                    <div class="help-popover-header">
+                      <strong>AppIndex Application Inspector</strong>
+                    </div>
+                    <p class="help-popover-text">
+                      A fast local desktop applications and software package inspector for Linux.
+                    </p>
+                    <div class="help-popover-meta">
+                      <span class="help-popover-label">Default:</span>
+                      <code>http://localhost:8765</code>
+                    </div>
+                    <div class="help-popover-footer">
+                      <a href="https://github.com/PlasmaDrifter/AppIndex" target="_blank" rel="noopener noreferrer" class="help-popover-link">
+                        View on GitHub &rarr;
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="integration-card-body">
+                <label class="toggle-label" for="toggle-appindex-link">
+                  <input type="checkbox" id="toggle-appindex-link">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-text">Show in navigation</span>
+                </label>
+
+                <label class="toggle-label toggle-disabled" id="companion-same-tab-wrapper" for="toggle-appindex-same-tab">
+                  <input type="checkbox" id="toggle-appindex-same-tab" disabled>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-text">Open in same tab</span>
+                </label>
+              </div>
             </div>
+          </div>
+
+          <!-- AppIndex URL row (displays when AppIndex enabled) -->
+          <div id="appindex-url-config" class="services-url-row" style="display: none;">
+            <label for="appindex-url-input" class="services-url-label">AppIndex URL:</label>
+            <input type="url" id="appindex-url-input" class="services-url-input" placeholder="http://localhost:8765" value="http://localhost:8765">
+            <button type="button" id="btn-reset-appindex-url" class="btn btn-outline btn-xs" title="Reset to default URL">Reset</button>
           </div>
         </div>
       </div>
+
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="btn-done-settings">Close</button>
+        <button id="settings-done-btn" class="btn btn-primary">Done</button>
       </div>
     </div>
   </div>

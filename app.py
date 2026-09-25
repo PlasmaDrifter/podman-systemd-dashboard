@@ -10,6 +10,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from typing import Optional
 from pydantic import BaseModel
 import uvicorn
 
@@ -219,8 +220,11 @@ def perform_action(name: str, req: ActionRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 class SettingsUpdateRequest(BaseModel):
-    show_github_btn: bool = None
-    check_for_updates: bool = None
+    show_github_btn: Optional[bool] = None
+    check_for_updates: Optional[bool] = None
+    show_appindex_link: Optional[bool] = None
+    open_appindex_same_tab: Optional[bool] = None
+    appindex_url: Optional[str] = None
 
 @app.get("/api/settings")
 def get_settings_endpoint():
@@ -245,6 +249,12 @@ def update_settings_endpoint(req: SettingsUpdateRequest):
             updates["show_github_btn"] = req.show_github_btn
         if req.check_for_updates is not None:
             updates["check_for_updates"] = req.check_for_updates
+        if req.show_appindex_link is not None:
+            updates["show_appindex_link"] = req.show_appindex_link
+        if req.open_appindex_same_tab is not None:
+            updates["open_appindex_same_tab"] = req.open_appindex_same_tab
+        if req.appindex_url is not None:
+            updates["appindex_url"] = req.appindex_url
         new_settings = scanner.update_settings(updates)
         update_info = check_github_update(force=False, enabled=new_settings.get("check_for_updates", True))
         return {
