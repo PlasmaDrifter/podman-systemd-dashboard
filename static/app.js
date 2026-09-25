@@ -150,7 +150,7 @@ async function handleManualScan() {
   } finally {
     btn.disabled = false;
     spinIcon.classList.remove('spinning');
-    btnText.textContent = 'Scan';
+    btnText.textContent = 'Rescan';
   }
 }
 
