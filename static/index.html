@@ -21,7 +21,7 @@
       </div>
       <div class="header-right">
         <div class="header-actions-row">
-          <a id="nav-appindex-link" href="http://localhost:8765" target="_blank" rel="noopener noreferrer" class="btn nav-appindex-btn" title="Open AppIndex" style="display: none;">
+          <a id="nav-appindex-link" href="http://localhost:8765" target="_blank" rel="noopener noreferrer" class="btn btn-sm nav-appindex-btn" title="Open AppIndex" style="display: none;">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="3" width="7" height="7"></rect>
               <rect x="14" y="3" width="7" height="7"></rect>
@@ -35,23 +35,23 @@
               <line x1="10" y1="14" x2="21" y2="3"></line>
             </svg>
           </a>
-          <button id="btn-settings" class="btn btn-secondary" title="Application Settings">
-            <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none">
+          <button id="btn-scan" class="btn btn-secondary btn-sm" title="Scan services">
+            <svg class="icon spin-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+            <span id="scan-btn-text">Scan</span>
+          </button>
+          <button id="btn-settings" class="btn btn-secondary btn-sm" title="Application Settings">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
               <circle cx="12" cy="12" r="3"></circle>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
             </svg>
             <span>Settings</span>
           </button>
-          <button id="btn-scan" class="btn btn-secondary">
-            <svg class="icon spin-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-            </svg>
-            <span id="scan-btn-text">Scan Now</span>
-          </button>
           <a href="https://github.com/PlasmaDrifter/podman-systemd-dashboard"
              target="_blank"
              rel="noopener noreferrer"
-             class="btn btn-secondary nav-github-btn"
+             class="btn btn-secondary btn-sm nav-github-btn"
              id="nav-github-link"
              title="GitHub Repository (v1.1.0)">
             <svg class="nav-github-icon" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
