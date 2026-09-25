@@ -58,6 +58,32 @@ def save_metadata(data):
     except Exception as e:
         print("Error saving metadata:", e)
 
+def get_settings():
+    meta = load_metadata()
+    default_settings = {
+        "show_github_btn": True,
+        "check_for_updates": True
+    }
+    saved = meta.get("settings", {})
+    return {**default_settings, **saved}
+
+def update_settings(new_settings: dict):
+    meta = load_metadata()
+    current = meta.get("settings", {})
+    current.update(new_settings)
+    meta["settings"] = current
+    save_metadata(meta)
+    return current
+
+def get_cached_update():
+    meta = load_metadata()
+    return meta.get("update_cache", {})
+
+def set_cached_update(update_data: dict):
+    meta = load_metadata()
+    meta["update_cache"] = update_data
+    save_metadata(meta)
+
 def detect_port_from_content(content):
     matches = re.findall(r'(?:PublishPort|--port|=port|-p|:)\s*=?\s*([0-9]{4,5})', content, re.IGNORECASE)
     if matches:

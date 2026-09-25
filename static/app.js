@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initThemeManager();
   initEventListeners();
   loadData();
+  loadSettings();
 });
 
 function initEventListeners() {
@@ -78,12 +79,57 @@ function initEventListeners() {
   document.getElementById('btn-close-theme').addEventListener('click', closeThemeModal);
   document.getElementById('btn-done-theme').addEventListener('click', closeThemeModal);
 
+  // Settings Modal Controls
+  const btnSettings = document.getElementById('btn-settings-modal');
+  if (btnSettings) btnSettings.addEventListener('click', openSettingsModal);
+  const btnCloseSettings = document.getElementById('btn-close-settings');
+  if (btnCloseSettings) btnCloseSettings.addEventListener('click', closeSettingsModal);
+  const btnDoneSettings = document.getElementById('btn-done-settings');
+  if (btnDoneSettings) btnDoneSettings.addEventListener('click', closeSettingsModal);
+
+  // Settings Toggles & Actions
+  const toggleGithubBtn = document.getElementById('toggle-github-btn');
+  if (toggleGithubBtn) {
+    toggleGithubBtn.addEventListener('change', async (e) => {
+      const show = e.target.checked;
+      const navGithub = document.getElementById('nav-github-link');
+      if (navGithub) {
+        navGithub.style.display = show ? 'inline-flex' : 'none';
+      }
+      await updateAppSetting({ show_github_btn: show });
+    });
+  }
+
+  const toggleCheckUpdates = document.getElementById('toggle-check-updates');
+  if (toggleCheckUpdates) {
+    toggleCheckUpdates.addEventListener('change', async (e) => {
+      const enabled = e.target.checked;
+      await updateAppSetting({ check_for_updates: enabled });
+      if (enabled) {
+        await triggerCheckUpdate(false);
+      } else {
+        const updateBadge = document.getElementById('nav-update-badge');
+        if (updateBadge) updateBadge.classList.add('hidden');
+        const settingsBadge = document.getElementById('settings-update-badge');
+        if (settingsBadge) settingsBadge.classList.add('hidden');
+        const settingsDesc = document.getElementById('settings-update-desc');
+        if (settingsDesc) settingsDesc.textContent = 'Update checks disabled';
+      }
+    });
+  }
+
+  const btnCheckNow = document.getElementById('btn-check-update-now');
+  if (btnCheckNow) {
+    btnCheckNow.addEventListener('click', () => triggerCheckUpdate(true));
+  }
+
   // Close modals on escape key or outside click
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeEditorModal();
       closeLogsModal();
       closeThemeModal();
+      closeSettingsModal();
     }
   });
 
@@ -93,6 +139,7 @@ function initEventListeners() {
         closeEditorModal();
         closeLogsModal();
         closeThemeModal();
+        closeSettingsModal();
       }
     });
   });
@@ -983,5 +1030,164 @@ function openThemeModal() {
 
 function closeThemeModal() {
   document.getElementById('theme-modal').classList.remove('open');
+}
+
+// ========================================================
+// Settings & Update Checker
+// ========================================================
+let cachedAppVersion = 'v1.0.0';
+let cachedGithubRepo = 'PlasmaDrifter/podman-systemd-dashboard';
+let isCheckingUpdate = false;
+
+function openSettingsModal() {
+  document.getElementById('settings-modal').classList.add('open');
+}
+
+function closeSettingsModal() {
+  document.getElementById('settings-modal').classList.remove('open');
+}
+
+async function loadSettings() {
+  try {
+    const res = await fetch('/api/settings');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.status === 'ok') {
+      const settings = data.settings || {};
+      cachedAppVersion = data.app_version || 'v1.0.0';
+      cachedGithubRepo = data.github_repo || 'PlasmaDrifter/podman-systemd-dashboard';
+
+      // 1. Apply toggle states
+      const toggleGithub = document.getElementById('toggle-github-btn');
+      if (toggleGithub) {
+        toggleGithub.checked = settings.show_github_btn !== false;
+      }
+      const navGithub = document.getElementById('nav-github-link');
+      if (navGithub) {
+        navGithub.style.display = (settings.show_github_btn !== false) ? 'inline-flex' : 'none';
+      }
+
+      const toggleUpdates = document.getElementById('toggle-check-updates');
+      if (toggleUpdates) {
+        toggleUpdates.checked = settings.check_for_updates !== false;
+      }
+
+      const versionPill = document.getElementById('settings-current-version');
+      if (versionPill) {
+        versionPill.textContent = cachedAppVersion;
+      }
+
+      // 2. Apply update info
+      applyUpdateInfo(data.update_info, cachedAppVersion, cachedGithubRepo);
+    }
+  } catch (err) {
+    console.error('Failed to load settings:', err);
+  }
+}
+
+function applyUpdateInfo(info, appVersion, repo) {
+  const hasUpdate = info && info.has_update;
+  const latestVersion = (info && info.latest_version) || appVersion;
+  const releaseUrl = (info && info.release_url) || `https://github.com/${repo}/releases`;
+
+  // Top Nav GitHub Icon Link & Pulse Badge
+  const navGithub = document.getElementById('nav-github-link');
+  const navUpdateBadge = document.getElementById('nav-update-badge');
+  if (navGithub) {
+    if (hasUpdate) {
+      navGithub.classList.add('has-update');
+      navGithub.href = releaseUrl;
+      navGithub.title = `Update available (${latestVersion}) - Click to view release`;
+      if (navUpdateBadge) navUpdateBadge.classList.remove('hidden');
+    } else {
+      navGithub.classList.remove('has-update');
+      navGithub.href = `https://github.com/${repo}`;
+      navGithub.title = `GitHub Repository (${appVersion})`;
+      if (navUpdateBadge) navUpdateBadge.classList.add('hidden');
+    }
+  }
+
+  // Settings Modal Update Badge & Description
+  const settingsBadge = document.getElementById('settings-update-badge');
+  const settingsDesc = document.getElementById('settings-update-desc');
+  if (settingsBadge && settingsDesc) {
+    if (hasUpdate) {
+      settingsBadge.textContent = `New: ${latestVersion}`;
+      settingsBadge.href = releaseUrl;
+      settingsBadge.classList.remove('hidden');
+      settingsDesc.textContent = `Update available: ${latestVersion} (Current: ${appVersion})`;
+    } else {
+      settingsBadge.classList.add('hidden');
+      const checkEnabled = info ? info.check_enabled : true;
+      settingsDesc.textContent = checkEnabled 
+        ? `Automatically check GitHub releases (Current: ${appVersion})` 
+        : `Update checks disabled (Current: ${appVersion})`;
+    }
+  }
+}
+
+async function updateAppSetting(payload) {
+  try {
+    const res = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('Settings update failed');
+    const data = await res.json();
+    if (data.status === 'ok') {
+      applyUpdateInfo(data.update_info, cachedAppVersion, cachedGithubRepo);
+    }
+  } catch (err) {
+    console.error('Error saving setting:', err);
+    showToast('Failed to update setting', 'error');
+  }
+}
+
+async function triggerCheckUpdate(manual = false) {
+  if (isCheckingUpdate) return;
+  const btn = document.getElementById('btn-check-update-now');
+
+  isCheckingUpdate = true;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Checking...';
+  }
+
+  try {
+    const res = await fetch('/api/check-update', { method: 'POST' });
+    if (!res.ok) throw new Error('Update check failed');
+    const data = await res.json();
+    if (data.status === 'ok' && data.update_info) {
+      applyUpdateInfo(data.update_info, cachedAppVersion, cachedGithubRepo);
+      if (manual) {
+        if (data.update_info.has_update) {
+          showToast(`Update available: ${data.update_info.latest_version}`);
+        } else {
+          showToast(`Dashboard is up to date (${cachedAppVersion})`);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error checking updates:', err);
+    if (manual) showToast('Failed to check for updates', 'error');
+  } finally {
+    // 15-second debounce cooldown
+    setTimeout(() => {
+      isCheckingUpdate = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Check Now';
+      }
+    }, 15000);
+
+    // If still in cooldown, indicate waiting briefly
+    if (btn) {
+      btn.textContent = 'Checked';
+      setTimeout(() => {
+        if (isCheckingUpdate && btn) btn.textContent = 'Cooling down...';
+      }, 2000);
+    }
+  }
 }
 

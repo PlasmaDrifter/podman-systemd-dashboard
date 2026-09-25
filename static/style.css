@@ -135,6 +135,65 @@ body {
   height: 14px;
 }
 
+/* Nav GitHub Button & Update Badge */
+.nav-github-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0 !important;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.nav-github-icon {
+  width: 15px;
+  height: 15px;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+.nav-github-btn:hover .nav-github-icon {
+  color: #ffffff;
+  transform: scale(1.1);
+}
+
+.nav-github-btn.has-update {
+  border-color: #f97316;
+}
+
+.nav-github-btn.has-update .nav-github-icon {
+  color: #f97316;
+}
+
+.nav-update-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  background: #f97316;
+  color: #ffffff;
+  border-radius: 50%;
+  font-size: 8px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 0 0 2px var(--bg-surface), 0 2px 4px rgba(0, 0, 0, 0.4);
+  animation: update-pulse 2s infinite ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes update-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 2px var(--bg-surface); }
+  50% { transform: scale(1.15); box-shadow: 0 0 0 2px var(--bg-surface), 0 0 6px rgba(249, 115, 22, 0.7); }
+  100% { transform: scale(1); box-shadow: 0 0 0 2px var(--bg-surface); }
+}
+
 .last-scan-label {
   font-size: 0.74rem;
   color: var(--text-dim);
@@ -1054,4 +1113,222 @@ body {
 
 .theme-name-input:focus {
   border-color: var(--primary);
+}
+
+/* ======================================================== */
+/* Settings Modal & Custom Toggles */
+/* ======================================================== */
+.settings-modal-content {
+  max-width: 540px;
+}
+
+.settings-modal-body {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* GitHub Card */
+.settings-github-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  gap: 12px;
+}
+
+.settings-github-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-github-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+}
+
+.settings-version-pill {
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  padding: 3px 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-muted);
+}
+
+.btn-github-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 5px 11px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-github-link:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--primary);
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.btn-github-link .github-icon {
+  flex-shrink: 0;
+  color: var(--text-dim);
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.btn-github-link:hover .github-icon {
+  transform: scale(1.1);
+  color: var(--primary);
+}
+
+.btn-github-link .github-link-arrow {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin-left: 2px;
+  transition: transform 0.15s ease;
+}
+
+.btn-github-link:hover .github-link-arrow {
+  opacity: 1;
+  transform: translate(2px, -2px);
+  color: var(--primary);
+}
+
+/* Settings Group & Rows */
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+}
+
+.setting-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.setting-item-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.setting-item-info {
+  flex: 1;
+  min-width: 120px;
+}
+
+.setting-item-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.setting-item-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+.setting-item-controls {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.settings-update-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(249, 115, 22, 0.18);
+  color: #f97316;
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.settings-update-badge:hover {
+  background: rgba(249, 115, 22, 0.28);
+  border-color: #f97316;
+}
+
+/* Custom Sliding Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: var(--bg-card);
+  transition: 0.2s ease;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  bottom: 2px;
+  background-color: var(--text-dim);
+  transition: 0.2s ease;
+  border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(16px);
+  background-color: #ffffff;
 }

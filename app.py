@@ -1,7 +1,10 @@
 import os
 import sys
+import re
+import json
 import threading
 import time
+import urllib.request
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
@@ -12,12 +15,122 @@ import uvicorn
 
 import scanner
 
+APP_VERSION = "v1.0.0"
+GITHUB_REPO = "PlasmaDrifter/podman-systemd-dashboard"
+
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 
 # In-memory cached scan result
 cache_lock = threading.Lock()
 cached_data = None
+
+UPDATE_CACHE = {
+    "last_checked": 0,
+    "latest_version": APP_VERSION,
+    "release_url": f"https://github.com/{GITHUB_REPO}/releases",
+    "has_update": False,
+    "lock": threading.Lock(),
+}
+
+def parse_version_tuple(v_str: str):
+    if not v_str:
+        return (0, 0, 0)
+    cleaned = re.sub(r'^[vV]', '', str(v_str).strip())
+    parts = []
+    for p in re.split(r'[-.+_]', cleaned):
+        if p.isdigit():
+            parts.append(int(p))
+        else:
+            m = re.match(r'(\d+)', p)
+            if m:
+                parts.append(int(m.group(1)))
+    return tuple(parts)
+
+def is_newer_version(latest: str, current: str) -> bool:
+    try:
+        return parse_version_tuple(latest) > parse_version_tuple(current)
+    except Exception:
+        return False
+
+def check_github_update(force=False, enabled=True):
+    if not enabled:
+        return {
+            "has_update": False,
+            "latest_version": APP_VERSION,
+            "release_url": f"https://github.com/{GITHUB_REPO}/releases",
+            "current_version": APP_VERSION,
+            "check_enabled": False,
+        }
+
+    now = time.time()
+    # Check persisted cache on first run
+    with UPDATE_CACHE["lock"]:
+        if UPDATE_CACHE["last_checked"] == 0:
+            persisted = scanner.get_cached_update()
+            if persisted and "last_checked" in persisted:
+                UPDATE_CACHE["last_checked"] = persisted.get("last_checked", 0)
+                UPDATE_CACHE["latest_version"] = persisted.get("latest_version", APP_VERSION)
+                UPDATE_CACHE["release_url"] = persisted.get("release_url", f"https://github.com/{GITHUB_REPO}/releases")
+                UPDATE_CACHE["has_update"] = persisted.get("has_update", False)
+
+        # 1-hour cache window (3600 seconds) unless forced
+        if not force and (now - UPDATE_CACHE["last_checked"] < 3600) and UPDATE_CACHE["last_checked"] > 0:
+            return {
+                "has_update": UPDATE_CACHE["has_update"],
+                "latest_version": UPDATE_CACHE["latest_version"],
+                "release_url": UPDATE_CACHE["release_url"],
+                "current_version": APP_VERSION,
+                "check_enabled": True,
+            }
+
+    try:
+        url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": f"podman-systemd-dashboard-UpdateChecker/{APP_VERSION}",
+                "Accept": "application/vnd.github.v3+json"
+            }
+        )
+        with urllib.request.urlopen(req, timeout=4) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            tag = data.get("tag_name", "").strip()
+            html_url = data.get("html_url") or f"https://github.com/{GITHUB_REPO}/releases"
+            has_update = bool(tag and is_newer_version(tag, APP_VERSION))
+
+            with UPDATE_CACHE["lock"]:
+                UPDATE_CACHE["last_checked"] = now
+                UPDATE_CACHE["latest_version"] = tag or APP_VERSION
+                UPDATE_CACHE["release_url"] = html_url
+                UPDATE_CACHE["has_update"] = has_update
+
+            scanner.set_cached_update({
+                "last_checked": now,
+                "latest_version": tag or APP_VERSION,
+                "release_url": html_url,
+                "has_update": has_update
+            })
+
+            return {
+                "has_update": has_update,
+                "latest_version": tag or APP_VERSION,
+                "release_url": html_url,
+                "current_version": APP_VERSION,
+                "check_enabled": True,
+            }
+    except Exception as e:
+        with UPDATE_CACHE["lock"]:
+            # On error, wait 10 min before re-attempting (cooldown = 3600 - 3000 = 600s)
+            UPDATE_CACHE["last_checked"] = now - 3000
+            return {
+                "has_update": UPDATE_CACHE["has_update"],
+                "latest_version": UPDATE_CACHE["latest_version"],
+                "release_url": UPDATE_CACHE["release_url"],
+                "current_version": APP_VERSION,
+                "check_enabled": True,
+                "error": str(e)
+            }
 
 def run_periodic_scanner(interval_seconds=86400):
     global cached_data
@@ -105,11 +218,51 @@ def perform_action(name: str, req: ActionRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/service/{name}/logs")
-def get_logs(name: str, lines: int = 100):
+class SettingsUpdateRequest(BaseModel):
+    show_github_btn: bool = None
+    check_for_updates: bool = None
+
+@app.get("/api/settings")
+def get_settings_endpoint():
     try:
-        logs = scanner.get_service_logs(name, lines=lines)
-        return {"name": name, "logs": logs}
+        settings = scanner.get_settings()
+        update_info = check_github_update(force=False, enabled=settings.get("check_for_updates", True))
+        return {
+            "status": "ok",
+            "settings": settings,
+            "update_info": update_info,
+            "app_version": APP_VERSION,
+            "github_repo": GITHUB_REPO
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/settings")
+def update_settings_endpoint(req: SettingsUpdateRequest):
+    try:
+        updates = {}
+        if req.show_github_btn is not None:
+            updates["show_github_btn"] = req.show_github_btn
+        if req.check_for_updates is not None:
+            updates["check_for_updates"] = req.check_for_updates
+        new_settings = scanner.update_settings(updates)
+        update_info = check_github_update(force=False, enabled=new_settings.get("check_for_updates", True))
+        return {
+            "status": "ok",
+            "settings": new_settings,
+            "update_info": update_info
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/check-update")
+def check_update_endpoint():
+    try:
+        update_info = check_github_update(force=True, enabled=True)
+        return {
+            "status": "ok",
+            "update_info": update_info
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
