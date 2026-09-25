@@ -826,7 +826,7 @@ let userSettings = {
 };
 
 let appUpdateData = null;
-let cachedAppVersion = "v1.1.1";
+let cachedAppVersion = "v1.1.2";
 let cachedGithubRepo = "PlasmaDrifter/podman-systemd-dashboard";
 
 function loadSavedSettings() {
@@ -1018,6 +1018,13 @@ function renderUpdateUI(info) {
   const banner = document.getElementById("settings-update-banner");
   const bannerVer = document.getElementById("update-banner-version");
   const bannerLink = document.getElementById("update-banner-link");
+  const btnSettings = document.getElementById("btn-settings");
+
+  const settingsVer = document.getElementById("settings-app-version");
+  if (settingsVer) {
+    const curVer = (info && info.current_version) ? info.current_version : (cachedAppVersion || "v1.1.2");
+    settingsVer.textContent = curVer.startsWith("v") ? curVer : `v${curVer}`;
+  }
 
   if (!userSettings.checkForUpdates) {
     clearUpdateIndicator();
@@ -1030,12 +1037,16 @@ function renderUpdateUI(info) {
     const isDismissed = (dismissedVer === info.latest_version);
 
     if (ghLink) {
-      if (info.release_url) ghLink.href = info.release_url;
-      ghLink.title = `Update available (${info.latest_version}) - Click to view release`;
+      ghLink.classList.remove("has-update");
+      ghLink.href = `https://github.com/${cachedGithubRepo || 'PlasmaDrifter/podman-systemd-dashboard'}`;
+      ghLink.title = `GitHub Repository (${cachedAppVersion || 'v1.1.2'})`;
+    }
+
+    if (btnSettings) {
+      btnSettings.title = isDismissed ? "Application Settings" : `Application Settings (Update ${info.latest_version} available)`;
     }
 
     if (!isDismissed) {
-      if (ghLink) ghLink.classList.add("has-update");
       if (navBadge) {
         navBadge.classList.remove("hidden");
         navBadge.style.display = "flex";
@@ -1048,14 +1059,16 @@ function renderUpdateUI(info) {
           statusBadge.onclick = () => window.open(info.release_url, "_blank");
         }
       }
-      // Banner is always shown when an update is available regardless of GitHub icon toggle
       if (banner) {
         banner.style.display = "flex";
         if (bannerVer) bannerVer.textContent = cleanVer;
         if (bannerLink && info.release_url) bannerLink.href = info.release_url;
+        const bannerCodeLink = document.getElementById("update-banner-code-link");
+        if (bannerCodeLink) {
+          bannerCodeLink.href = `https://github.com/${cachedGithubRepo || 'PlasmaDrifter/podman-systemd-dashboard'}/tree/${cleanVer}`;
+        }
       }
     } else {
-      if (ghLink) ghLink.classList.remove("has-update");
       if (navBadge) {
         navBadge.classList.add("hidden");
         navBadge.style.display = "none";
@@ -1073,11 +1086,15 @@ function clearUpdateIndicator() {
   const navBadge = document.getElementById("nav-update-badge");
   const statusBadge = document.getElementById("update-status-badge");
   const banner = document.getElementById("settings-update-banner");
+  const btnSettings = document.getElementById("btn-settings");
 
+  if (btnSettings) {
+    btnSettings.title = "Application Settings";
+  }
   if (ghLink) {
     ghLink.classList.remove("has-update");
-    ghLink.href = `https://github.com/${cachedGithubRepo}`;
-    ghLink.title = `GitHub Repository (${cachedAppVersion})`;
+    ghLink.href = `https://github.com/${cachedGithubRepo || 'PlasmaDrifter/podman-systemd-dashboard'}`;
+    ghLink.title = `GitHub Repository (${cachedAppVersion || 'v1.1.2'})`;
   }
   if (navBadge) {
     navBadge.classList.add("hidden");
@@ -1088,6 +1105,97 @@ function clearUpdateIndicator() {
   }
   if (banner) {
     banner.style.display = "none";
+  }
+}
+
+async function executeSelfUpdate() {
+  const versionStr = appUpdateData && appUpdateData.latest_version ? ` to ${appUpdateData.latest_version}` : "";
+  const confirmed = window.confirm(`Update podman-systemd-dashboard${versionStr}? The server will automatically download changes and restart.`);
+  if (!confirmed) return;
+
+  const btnApply = document.getElementById("btn-apply-update");
+  const btnDismiss = document.getElementById("btn-dismiss-update-banner");
+  const origBtnContent = btnApply ? btnApply.innerHTML : "Update Now";
+
+  if (btnApply) {
+    btnApply.disabled = true;
+    btnApply.innerHTML = `<svg class="spin-loop" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; vertical-align: -2px;"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>Updating...`;
+    btnApply.style.color = "var(--accent-orange, #f5a97f)";
+    btnApply.style.borderColor = "var(--accent-orange, #f5a97f)";
+    btnApply.style.cursor = "wait";
+  }
+  if (btnDismiss) {
+    btnDismiss.style.display = "none";
+  }
+
+  const progressModal = document.getElementById("update-progress-modal");
+  const progressTitle = document.getElementById("update-progress-title");
+  const progressDesc = document.getElementById("update-progress-desc");
+
+  if (progressModal) {
+    progressModal.style.display = "flex";
+  }
+
+  try {
+    const res = await fetch("/api/apply-update", { method: "POST" });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Server returned error ${res.status}`);
+    }
+
+    if (progressTitle) progressTitle.textContent = "Restarting Server...";
+    if (progressDesc) progressDesc.textContent = "Application updated. Waiting for server to come back online...";
+
+    await new Promise((r) => setTimeout(r, 2000));
+
+    let reconnected = false;
+    for (let i = 0; i < 40; i++) {
+      try {
+        const ping = await fetch("/api/status", { cache: "no-store" });
+        if (ping.ok) {
+          reconnected = true;
+          break;
+        }
+      } catch (_) {
+        // Still rebooting
+      }
+      await new Promise((r) => setTimeout(r, 750));
+    }
+
+    if (reconnected) {
+      if (progressTitle) progressTitle.textContent = "Reloading...";
+      if (progressDesc) progressDesc.textContent = "Update complete! Refreshing page...";
+      localStorage.removeItem("dashboard_dismissed_update_version");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } else {
+      if (progressDesc) {
+        progressDesc.textContent = "Server took too long to respond. Please refresh manually or check your terminal.";
+      }
+      setTimeout(() => {
+        if (progressModal) progressModal.style.display = "none";
+        if (btnApply) {
+          btnApply.disabled = false;
+          btnApply.innerHTML = origBtnContent;
+          btnApply.style.cursor = "pointer";
+        }
+        if (btnDismiss) {
+          btnDismiss.style.display = "";
+        }
+      }, 5000);
+    }
+  } catch (err) {
+    if (progressModal) progressModal.style.display = "none";
+    if (btnApply) {
+      btnApply.disabled = false;
+      btnApply.innerHTML = origBtnContent;
+      btnApply.style.cursor = "pointer";
+    }
+    if (btnDismiss) {
+      btnDismiss.style.display = "";
+    }
+    alert(`Update failed: ${err.message}`);
   }
 }
 
@@ -1465,11 +1573,15 @@ function bindSettingsInteractiveEvents() {
       const banner = document.getElementById("settings-update-banner");
       if (banner) banner.style.display = "none";
 
-      // 2. Clear both notifications: banner AND GitHub navigation badge & icon highlight
+      // 2. Clear both notifications: banner AND Settings navigation badge
       const navBadge = document.getElementById("nav-update-badge");
       if (navBadge) {
         navBadge.classList.add("hidden");
         navBadge.style.display = "none";
+      }
+      const btnSettings = document.getElementById("btn-settings");
+      if (btnSettings) {
+        btnSettings.title = "Application Settings";
       }
       const ghLink = document.getElementById("nav-github-link");
       if (ghLink) {
@@ -1485,6 +1597,14 @@ function bindSettingsInteractiveEvents() {
         localStorage.setItem("dashboard_dismissed_update_version", appUpdateData.latest_version);
       }
       showToast("Update notifications cleared");
+    });
+  }
+
+  // Settings Update Banner Apply (Self-Update)
+  const btnApplyUpdate = document.getElementById("btn-apply-update");
+  if (btnApplyUpdate) {
+    btnApplyUpdate.addEventListener("click", () => {
+      executeSelfUpdate();
     });
   }
 

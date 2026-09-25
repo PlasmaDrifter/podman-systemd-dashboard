@@ -19,6 +19,7 @@ A lightweight, high-performance web dashboard for monitoring, inspecting, and ma
 - **Instant Search & Quick Filters**: Search by service name, description, or port; filter by status (All, Running, Stopped) or category.
 - **Theme Customization**: Includes multiple modern dark and light color themes, plus a built-in theme builder with real-time preview and browser persistence.
 - **Compact & Responsive UI**: Dense layout optimized for quick status overviews and minimal screen footprint.
+- **Zero-Terminal Self-Updater**: In-app one-click self-updater supporting both Git and standalone installations with automatic server restart.
 
 ## Requirements
 

@@ -249,43 +249,32 @@ body.density-spacious .service-card {
   transform: scale(1.1);
 }
 
-.nav-github-btn.has-update {
-  border-color: #f97316;
-}
-
-.nav-github-btn.has-update .nav-github-icon {
-  color: #f97316;
+.nav-settings-btn {
+  position: relative;
 }
 
 .nav-update-badge {
   position: absolute;
   top: -4px;
   right: -4px;
-  width: 12px;
-  height: 12px;
-  background: #f97316;
-  color: #ffffff;
+  width: 13px;
+  height: 13px;
+  background: var(--accent-orange, #f5a97f);
+  color: #181926;
   border-radius: 50%;
-  font-size: 8px;
-  font-weight: 900;
+  font-size: 9px;
+  font-weight: 800;
   display: none;
   align-items: center;
   justify-content: center;
   line-height: 1;
   box-shadow: 0 0 0 2px var(--bg-surface), 0 2px 4px rgba(0, 0, 0, 0.4);
-  animation: update-pulse 2s infinite ease-in-out;
   pointer-events: none;
 }
 
 .nav-update-badge.hidden,
 .hidden {
   display: none !important;
-}
-
-@keyframes update-pulse {
-  0% { transform: scale(1); box-shadow: 0 0 0 2px var(--bg-surface); }
-  50% { transform: scale(1.15); box-shadow: 0 0 0 2px var(--bg-surface), 0 0 6px rgba(249, 115, 22, 0.7); }
-  100% { transform: scale(1); box-shadow: 0 0 0 2px var(--bg-surface); }
 }
 
 .last-scan-label {
@@ -1079,6 +1068,24 @@ body.density-spacious .service-card {
   flex-shrink: 0;
 }
 
+.settings-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.settings-version-tag {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  padding: 1px 7px;
+  border-radius: var(--radius-sm, 4px);
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
 .modal-subtitle {
   font-size: 11.5px;
   color: var(--text-muted);
@@ -1217,6 +1224,33 @@ body.density-spacious .service-card {
 }
 
 .update-banner-clear-btn:hover {
+  background: rgba(245, 169, 127, 0.2);
+  border-color: var(--accent-orange, #f5a97f);
+  color: var(--accent-orange, #f5a97f);
+}
+
+.update-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.update-banner-apply-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(245, 169, 127, 0.4);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+
+.update-banner-apply-btn:hover {
   background: rgba(245, 169, 127, 0.2);
   border-color: var(--accent-orange, #f5a97f);
   color: var(--accent-orange, #f5a97f);
@@ -1800,3 +1834,61 @@ body.density-spacious .service-card {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* Update Progress Modal Overlay & Refresh Loop */
+.update-modal-backdrop {
+  z-index: 3000 !important;
+}
+
+.update-modal-content {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  padding: 32px 24px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+.update-progress-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.update-progress-body h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.update-progress-body p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.update-refresh-loop {
+  width: 44px;
+  height: 44px;
+  color: var(--accent-orange, #f5a97f);
+  flex-shrink: 0;
+}
+
+.spin-loop {
+  animation: spin-loop 1s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes spin-loop {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+

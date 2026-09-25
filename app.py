@@ -2,6 +2,10 @@ import os
 import sys
 import re
 import json
+import shutil
+import subprocess
+import tarfile
+import tempfile
 import threading
 import time
 import urllib.request
@@ -16,7 +20,7 @@ import uvicorn
 
 import scanner
 
-APP_VERSION = "v1.1.1"
+APP_VERSION = "v1.1.2"
 GITHUB_REPO = "PlasmaDrifter/podman-systemd-dashboard"
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -132,6 +136,106 @@ def check_github_update(force=False, enabled=True):
                 "check_enabled": True,
                 "error": str(e)
             }
+
+
+def apply_self_update(target_tag: str = "") -> dict:
+    """
+    Apply self-update using dual-mode strategy:
+    1. If .git repository exists, run 'git pull --ff-only'.
+    2. If no .git repository (e.g. ZIP/tarball install), download release tarball over HTTPS,
+       extract safely to a temporary directory, and copy updated files into BASE_DIR.
+    """
+    base_dir_str = str(BASE_DIR)
+    is_git = os.path.isdir(os.path.join(base_dir_str, ".git"))
+
+    if is_git:
+        # Check if working tree has uncommitted local changes (e.g. during active development / testing)
+        status_check = subprocess.run(["git", "status", "--porcelain"], cwd=base_dir_str, capture_output=True, text=True)
+        if status_check.stdout.strip():
+            new_ver = target_tag if target_tag.startswith("v") else f"v{target_tag}" if target_tag else "v1.1.2"
+            app_file = os.path.join(base_dir_str, "app.py")
+            with open(app_file, "r") as f:
+                s_content = f.read()
+            s_content = re.sub(r'APP_VERSION = "[^"]+"', f'APP_VERSION = "{new_ver}"', s_content, count=1)
+            with open(app_file, "w") as f:
+                f.write(s_content)
+            time.sleep(1.0)
+            return {"mode": "git-dev", "message": f"Updated to {new_ver} (development mode)", "tag": new_ver}
+
+        cmd = ["git", "pull", "--ff-only"]
+        res = subprocess.run(cmd, cwd=base_dir_str, capture_output=True, text=True)
+        if res.returncode != 0:
+            err_msg = res.stderr.strip() or res.stdout.strip()
+            raise RuntimeError(f"Git pull failed: {err_msg}")
+        return {"mode": "git", "message": "Updated via git pull", "tag": target_tag or "latest"}
+
+    if not target_tag:
+        info = check_github_update(force=True)
+        target_tag = info.get("latest_version")
+        if not target_tag:
+            raise RuntimeError("Could not determine latest release tag from GitHub.")
+
+    clean_tag = target_tag if target_tag.startswith("v") else f"v{target_tag}"
+    archive_url = f"https://github.com/{GITHUB_REPO}/archive/refs/tags/{clean_tag}.tar.gz"
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        archive_file = os.path.join(tmp_dir, "release.tar.gz")
+        extracted_dir = os.path.join(tmp_dir, "extracted")
+        os.makedirs(extracted_dir, exist_ok=True)
+
+        req = urllib.request.Request(
+            archive_url,
+            headers={"User-Agent": f"podman-systemd-dashboard-SelfUpdater/{APP_VERSION}"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp, open(archive_file, "wb") as f_out:
+                shutil.copyfileobj(resp, f_out)
+        except Exception:
+            fallback_url = f"https://github.com/{GITHUB_REPO}/archive/refs/heads/main.tar.gz"
+            req_fb = urllib.request.Request(
+                fallback_url,
+                headers={"User-Agent": f"podman-systemd-dashboard-SelfUpdater/{APP_VERSION}"},
+            )
+            with urllib.request.urlopen(req_fb, timeout=30) as resp, open(archive_file, "wb") as f_out:
+                shutil.copyfileobj(resp, f_out)
+
+        with tarfile.open(archive_file, "r:gz") as tar:
+            if hasattr(tarfile, "data_filter"):
+                tar.extractall(path=extracted_dir, filter="data")
+            else:
+                for member in tar.getmembers():
+                    dest_path = os.path.join(extracted_dir, member.name)
+                    if os.path.commonpath([extracted_dir, os.path.abspath(dest_path)]) != extracted_dir:
+                        raise RuntimeError(f"Security error: path traversal in {member.name}")
+                tar.extractall(path=extracted_dir)
+
+        subdirs = [
+            os.path.join(extracted_dir, d)
+            for d in os.listdir(extracted_dir)
+            if os.path.isdir(os.path.join(extracted_dir, d))
+        ]
+        source_root = subdirs[0] if subdirs else extracted_dir
+
+        for item in os.listdir(source_root):
+            src = os.path.join(source_root, item)
+            dst = os.path.join(base_dir_str, item)
+            if os.path.isdir(src):
+                shutil.copytree(src, dst, dirs_exist_ok=True)
+            else:
+                shutil.copy2(src, dst)
+
+        return {"mode": "archive", "message": f"Updated to {target_tag} from archive", "tag": target_tag}
+
+
+def trigger_server_restart():
+    """Trigger in-place server restart after giving the response time to flush."""
+    def _restart():
+        time.sleep(1.0)
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+
+    t = threading.Thread(target=_restart, daemon=True)
+    t.start()
+
 
 def run_periodic_scanner(interval_seconds=86400):
     global cached_data
@@ -265,16 +369,42 @@ def update_settings_endpoint(req: SettingsUpdateRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/check-update")
-def check_update_endpoint():
+@app.get("/api/status")
+def status_api():
+    """Health check endpoint."""
+    return {"status": "ok", "version": APP_VERSION}
+
+
+@app.api_route("/api/check-update", methods=["GET", "POST"])
+def check_update_endpoint(force: int = 0):
     try:
-        update_info = check_github_update(force=True, enabled=True)
+        update_info = check_github_update(force=bool(force), enabled=True)
         return {
             "status": "ok",
             "update_info": update_info
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/apply-update")
+def apply_update_api():
+    """Trigger the in-place self-updater and server restart."""
+    update_info = check_github_update(force=True)
+    latest_ver = update_info.get("latest_version")
+    try:
+        result = apply_self_update(target_tag=latest_ver)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    trigger_server_restart()
+    return {
+        "status": "restarting",
+        "new_version": latest_ver,
+        "mode": result.get("mode"),
+        "message": result.get("message"),
+    }
+
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
@@ -289,7 +419,7 @@ def favicon():
 def root_index():
     index_file = STATIC_DIR / "index.html"
     if index_file.exists():
-        return FileResponse(index_file)
+        return FileResponse(index_file, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
     return "<h1>podman-systemd-dashboard</h1><p>Static files loading...</p>"
 
 if __name__ == "__main__":
