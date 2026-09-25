@@ -1015,6 +1015,9 @@ function renderUpdateUI(info) {
   const ghLink = document.getElementById("nav-github-link");
   const navBadge = document.getElementById("nav-update-badge");
   const statusBadge = document.getElementById("update-status-badge");
+  const banner = document.getElementById("settings-update-banner");
+  const bannerVer = document.getElementById("update-banner-version");
+  const bannerLink = document.getElementById("update-banner-link");
 
   if (!userSettings.checkForUpdates) {
     clearUpdateIndicator();
@@ -1023,23 +1026,42 @@ function renderUpdateUI(info) {
 
   if (info && info.has_update) {
     const cleanVer = info.latest_version.startsWith("v") ? info.latest_version : `v${info.latest_version}`;
+    const dismissedVer = localStorage.getItem("dashboard_dismissed_update_version");
+    const isDismissed = (dismissedVer === info.latest_version);
 
     if (ghLink) {
-      ghLink.classList.add("has-update");
       if (info.release_url) ghLink.href = info.release_url;
       ghLink.title = `Update available (${info.latest_version}) - Click to view release`;
     }
-    if (navBadge) {
-      navBadge.classList.remove("hidden");
-      navBadge.style.display = "flex";
-      navBadge.title = `Update available: ${info.latest_version}`;
-    }
-    if (statusBadge) {
-      statusBadge.style.display = "inline-block";
-      statusBadge.textContent = `${cleanVer} available`;
-      if (info.release_url) {
-        statusBadge.onclick = () => window.open(info.release_url, "_blank");
+
+    if (!isDismissed) {
+      if (ghLink) ghLink.classList.add("has-update");
+      if (navBadge) {
+        navBadge.classList.remove("hidden");
+        navBadge.style.display = "flex";
+        navBadge.title = `Update available: ${info.latest_version}`;
       }
+      if (statusBadge) {
+        statusBadge.style.display = "inline-block";
+        statusBadge.textContent = `${cleanVer} available`;
+        if (info.release_url) {
+          statusBadge.onclick = () => window.open(info.release_url, "_blank");
+        }
+      }
+      // Banner is always shown when an update is available regardless of GitHub icon toggle
+      if (banner) {
+        banner.style.display = "flex";
+        if (bannerVer) bannerVer.textContent = cleanVer;
+        if (bannerLink && info.release_url) bannerLink.href = info.release_url;
+      }
+    } else {
+      if (ghLink) ghLink.classList.remove("has-update");
+      if (navBadge) {
+        navBadge.classList.add("hidden");
+        navBadge.style.display = "none";
+      }
+      if (statusBadge) statusBadge.style.display = "none";
+      if (banner) banner.style.display = "none";
     }
   } else {
     clearUpdateIndicator();
@@ -1050,6 +1072,7 @@ function clearUpdateIndicator() {
   const ghLink = document.getElementById("nav-github-link");
   const navBadge = document.getElementById("nav-update-badge");
   const statusBadge = document.getElementById("update-status-badge");
+  const banner = document.getElementById("settings-update-banner");
 
   if (ghLink) {
     ghLink.classList.remove("has-update");
@@ -1062,6 +1085,9 @@ function clearUpdateIndicator() {
   }
   if (statusBadge) {
     statusBadge.style.display = "none";
+  }
+  if (banner) {
+    banner.style.display = "none";
   }
 }
 
@@ -1125,14 +1151,32 @@ function syncSettingsUI() {
   }
 
   const statusBadge = document.getElementById("update-status-badge");
-  if (statusBadge) {
-    if (userSettings.checkForUpdates && appUpdateData && appUpdateData.has_update) {
-      statusBadge.style.display = "inline-block";
-      const cleanVer = appUpdateData.latest_version.startsWith("v") ? appUpdateData.latest_version : `v${appUpdateData.latest_version}`;
-      statusBadge.textContent = `${cleanVer} available`;
+  const banner = document.getElementById("settings-update-banner");
+  const bannerVer = document.getElementById("update-banner-version");
+  const bannerLink = document.getElementById("update-banner-link");
+
+  if (userSettings.checkForUpdates && appUpdateData && appUpdateData.has_update) {
+    const cleanVer = appUpdateData.latest_version.startsWith("v") ? appUpdateData.latest_version : `v${appUpdateData.latest_version}`;
+    const dismissedVer = localStorage.getItem("dashboard_dismissed_update_version");
+    const isDismissed = (dismissedVer === appUpdateData.latest_version);
+
+    if (!isDismissed) {
+      if (statusBadge) {
+        statusBadge.style.display = "inline-block";
+        statusBadge.textContent = `${cleanVer} available`;
+      }
+      if (banner) {
+        banner.style.display = "flex";
+        if (bannerVer) bannerVer.textContent = cleanVer;
+        if (bannerLink && appUpdateData.release_url) bannerLink.href = appUpdateData.release_url;
+      }
     } else {
-      statusBadge.style.display = "none";
+      if (statusBadge) statusBadge.style.display = "none";
+      if (banner) banner.style.display = "none";
     }
+  } else {
+    if (statusBadge) statusBadge.style.display = "none";
+    if (banner) banner.style.display = "none";
   }
 
   if (toggleAppIndex) {
@@ -1402,6 +1446,7 @@ function bindSettingsInteractiveEvents() {
       userSettings.openAppIndexInSameTab = false;
       userSettings.appIndexUrl = "http://localhost:8765";
 
+      localStorage.removeItem("dashboard_dismissed_update_version");
       applyAllActiveSettings();
       syncSettingsUI();
       saveSettingsToStorage();
@@ -1409,6 +1454,37 @@ function bindSettingsInteractiveEvents() {
         checkAppUpdatesAsync();
       }
       showToast("Reset all settings to default");
+    });
+  }
+
+  // Settings Update Banner Dismiss / Clear button
+  const btnDismissBanner = document.getElementById("btn-dismiss-update-banner");
+  if (btnDismissBanner) {
+    btnDismissBanner.addEventListener("click", () => {
+      // 1. Hide the banner in settings
+      const banner = document.getElementById("settings-update-banner");
+      if (banner) banner.style.display = "none";
+
+      // 2. Clear both notifications: banner AND GitHub navigation badge & icon highlight
+      const navBadge = document.getElementById("nav-update-badge");
+      if (navBadge) {
+        navBadge.classList.add("hidden");
+        navBadge.style.display = "none";
+      }
+      const ghLink = document.getElementById("nav-github-link");
+      if (ghLink) {
+        ghLink.classList.remove("has-update");
+      }
+      const statusBadge = document.getElementById("update-status-badge");
+      if (statusBadge) {
+        statusBadge.style.display = "none";
+      }
+
+      // 3. Persist dismissed state for this release version
+      if (appUpdateData && appUpdateData.latest_version) {
+        localStorage.setItem("dashboard_dismissed_update_version", appUpdateData.latest_version);
+      }
+      showToast("Update notifications cleared");
     });
   }
 
