@@ -6,6 +6,7 @@ let currentSearch = '';
 let currentViewMode = 'table';
 let currentEditingUnit = null;
 let currentLogsUnit = null;
+let currentLastScanText = 'Last scan: --:--:--';
 
 const CATEGORY_ORDER = [
   "Web Apps & Dashboards",
@@ -210,10 +211,15 @@ function applyData(data) {
   document.getElementById('stat-timers').textContent = (data.stats && data.stats.active_timers) || 0;
 
   if (data.last_scan) {
-    document.getElementById('last-scan-time').textContent = `Last scan: ${data.last_scan}`;
+    currentLastScanText = `Last scan: ${data.last_scan}`;
   }
 
   renderContent();
+
+  const scanEl = document.getElementById('last-scan-time');
+  if (scanEl) {
+    scanEl.textContent = currentLastScanText;
+  }
 }
 
 function getUnifiedItems() {
@@ -330,6 +336,7 @@ function renderContent() {
   });
 
   // Render each category section
+  let isFirstCategory = true;
   CATEGORY_ORDER.forEach(categoryName => {
     const categoryItems = grouped[categoryName] || [];
     if (categoryItems.length === 0) return;
@@ -340,11 +347,19 @@ function renderContent() {
     // Category Header
     const header = document.createElement('div');
     header.className = 'category-header';
+
+    let lastScanHtml = '';
+    if (categoryName === "Web Apps & Dashboards" || isFirstCategory) {
+      lastScanHtml = `<span class="last-scan-label" id="last-scan-time">${currentLastScanText}</span>`;
+      isFirstCategory = false;
+    }
+
     header.innerHTML = `
       <div class="category-title-area">
         <h2 class="category-title">${escapeHtml(categoryName)}</h2>
         <span class="category-badge">${categoryItems.length}</span>
       </div>
+      ${lastScanHtml}
     `;
     section.appendChild(header);
 

@@ -35,6 +35,12 @@
             </svg>
             <span>Theme</span>
           </button>
+          <button id="btn-scan" class="btn btn-primary">
+            <svg class="icon spin-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+            <span id="scan-btn-text">Scan Now</span>
+          </button>
           <a href="https://github.com/PlasmaDrifter/podman-systemd-dashboard"
              target="_blank"
              rel="noopener noreferrer"
@@ -46,14 +52,7 @@
             </svg>
             <span class="nav-update-badge hidden" id="nav-update-badge" title="Update available">!</span>
           </a>
-          <button id="btn-scan" class="btn btn-primary">
-            <svg class="icon spin-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-            </svg>
-            <span id="scan-btn-text">Scan Now</span>
-          </button>
         </div>
-        <span class="last-scan-label" id="last-scan-time">Last scan: --:--:--</span>
       </div>
     </header>
 
@@ -303,33 +302,55 @@
     <div class="modal-content settings-modal-content">
       <div class="modal-header">
         <div>
-          <h2>Settings &amp; Preferences</h2>
-          <span class="file-path-badge">Configure dashboard display options and update checking</span>
+          <h2>Settings</h2>
+          <span class="file-path-badge">Application Preferences &amp; Updates</span>
         </div>
         <button class="btn-close" id="btn-close-settings">&times;</button>
       </div>
       <div class="modal-body settings-modal-body">
-        <!-- GitHub Banner Card -->
-        <div class="settings-github-card">
-          <div class="settings-github-info">
-            <span class="settings-github-label">GitHub Repository</span>
-            <a href="https://github.com/PlasmaDrifter/podman-systemd-dashboard" target="_blank" rel="noopener noreferrer" class="btn-github-link" title="Open GitHub Repository">
-              <svg class="github-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-              </svg>
-              <span>PlasmaDrifter/podman-systemd-dashboard</span>
-              <span class="github-link-arrow">&nearr;</span>
-            </a>
+        <!-- Updates Section -->
+        <div class="settings-card-section">
+          <div class="settings-card-header">
+            <h3>Version &amp; Updates</h3>
           </div>
-          <div class="settings-version-pill" id="settings-current-version">v1.0.0</div>
-        </div>
-
-        <div class="settings-group">
-          <!-- Toggle: Main Page GitHub Button -->
           <div class="setting-item-row">
             <div class="setting-item-info">
-              <div class="setting-item-title">Main Page GitHub Button</div>
-              <div class="setting-item-desc">Show GitHub icon next to Settings on the top bar</div>
+              <div class="setting-item-title">
+                Current Version
+                <span class="settings-version-pill" id="settings-current-version">v1.0.0</span>
+                <a href="https://github.com/PlasmaDrifter/podman-systemd-dashboard/releases" target="_blank" rel="noopener noreferrer" class="settings-update-badge hidden" id="settings-update-badge">New: v1.0.1</a>
+              </div>
+              <div class="setting-item-desc" id="settings-update-desc">
+                Latest release status
+              </div>
+            </div>
+            <div class="setting-item-controls">
+              <button class="btn btn-sm btn-secondary" id="btn-check-update-now" title="Check for updates immediately">Check Now</button>
+            </div>
+          </div>
+          <div class="setting-item-row">
+            <div class="setting-item-info">
+              <div class="setting-item-title">Automatic Update Checks</div>
+              <div class="setting-item-desc">Periodically check GitHub releases in the background (1-hour cache)</div>
+            </div>
+            <div class="setting-item-controls">
+              <label class="toggle-switch" title="Toggle automatic update checks">
+                <input type="checkbox" id="toggle-check-updates" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interface Section -->
+        <div class="settings-card-section">
+          <div class="settings-card-header">
+            <h3>Interface</h3>
+          </div>
+          <div class="setting-item-row">
+            <div class="setting-item-info">
+              <div class="setting-item-title">GitHub Quick Link</div>
+              <div class="setting-item-desc">Show GitHub shortcut icon on the right of Scan Now</div>
             </div>
             <div class="setting-item-controls">
               <label class="toggle-switch" title="Toggle GitHub icon on top bar">
@@ -338,30 +359,32 @@
               </label>
             </div>
           </div>
+        </div>
 
-          <!-- Toggle: Check for Updates -->
+        <!-- Repository & Source Section -->
+        <div class="settings-card-section">
+          <div class="settings-card-header">
+            <h3>About</h3>
+          </div>
           <div class="setting-item-row">
             <div class="setting-item-info">
-              <div class="setting-item-title">
-                Check for Updates
-                <a href="https://github.com/PlasmaDrifter/podman-systemd-dashboard/releases" target="_blank" rel="noopener noreferrer" class="settings-update-badge hidden" id="settings-update-badge">New: v1.0.1</a>
-              </div>
-              <div class="setting-item-desc" id="settings-update-desc">
-                Automatically check GitHub releases (Current: v1.0.0)
-              </div>
+              <div class="setting-item-title">GitHub Repository</div>
+              <div class="setting-item-desc">Browse source code, releases, and documentation</div>
             </div>
             <div class="setting-item-controls">
-              <button class="btn btn-sm btn-secondary" id="btn-check-update-now" title="Check for updates immediately">Check Now</button>
-              <label class="toggle-switch" title="Toggle checking for GitHub updates">
-                <input type="checkbox" id="toggle-check-updates" checked>
-                <span class="toggle-slider"></span>
-              </label>
+              <a href="https://github.com/PlasmaDrifter/podman-systemd-dashboard" target="_blank" rel="noopener noreferrer" class="btn-github-link" title="Open GitHub Repository">
+                <svg class="github-icon" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                </svg>
+                <span>PlasmaDrifter/podman-systemd-dashboard</span>
+                <span class="github-link-arrow">&nearr;</span>
+              </a>
             </div>
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-primary" id="btn-done-settings">Done</button>
+        <button class="btn btn-secondary" id="btn-done-settings">Close</button>
       </div>
     </div>
   </div>
