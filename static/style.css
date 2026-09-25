@@ -979,11 +979,32 @@ body.density-spacious .service-card {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  background-color: rgba(198, 160, 246, 0.14);
+  background-color: color-mix(in srgb, var(--accent-purple) 15%, transparent);
+  color: var(--accent-purple);
+  border: 1px solid rgba(198, 160, 246, 0.4);
+  border-color: color-mix(in srgb, var(--accent-purple) 45%, transparent);
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.nav-appindex-btn:hover {
+  background-color: var(--accent-purple);
+  color: var(--btn-primary-text, #ffffff);
+  border-color: var(--accent-purple);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-purple) 40%, transparent);
 }
 
 .nav-external-arrow {
-  opacity: 0.7;
+  opacity: 0.75;
   margin-left: 1px;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.nav-appindex-btn:hover .nav-external-arrow {
+  opacity: 1;
+  transform: translate(1px, -1px);
 }
 
 /* Button Helpers */
