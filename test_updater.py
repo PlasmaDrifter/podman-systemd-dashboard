@@ -20,6 +20,17 @@ class TestUpdaterEndpoints(unittest.TestCase):
         self.assertEqual(data.get("status"), "ok")
         self.assertIn("update_info", data)
 
+    def test_logs_endpoint(self):
+        from unittest.mock import patch
+        with patch("scanner.get_service_logs") as mock_logs:
+            mock_logs.return_value = "Sep 25 12:00:00 service started"
+            response = self.client.get("/api/service/test.service/logs?lines=50")
+            self.assertEqual(response.status_code, 200)
+            data = response.json()
+            self.assertEqual(data.get("name"), "test.service")
+            self.assertEqual(data.get("logs"), "Sep 25 12:00:00 service started")
+            mock_logs.assert_called_once_with("test.service", lines=50)
+
     def test_apply_update_endpoint(self):
         from unittest.mock import patch
         with patch("app.apply_self_update") as mock_apply, \

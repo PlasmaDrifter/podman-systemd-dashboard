@@ -408,4 +408,8 @@ def get_service_logs(unit_name, lines=100):
         ["journalctl", "--user", "-u", unit_name, "-n", str(lines), "--no-pager"],
         capture_output=True, text=True, timeout=5
     )
-    return res.stdout
+    if res.stdout:
+        return res.stdout
+    if res.stderr and res.returncode != 0:
+        return f"Error reading logs: {res.stderr.strip()}"
+    return ""

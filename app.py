@@ -323,6 +323,15 @@ def perform_action(name: str, req: ActionRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/service/{name}/logs")
+def get_logs(name: str, lines: int = 100):
+    try:
+        lines_count = min(max(int(lines), 1), 1000)
+        logs = scanner.get_service_logs(name, lines=lines_count)
+        return {"name": name, "logs": logs}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 class SettingsUpdateRequest(BaseModel):
     show_github_btn: Optional[bool] = None
     check_for_updates: Optional[bool] = None
