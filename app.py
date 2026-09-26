@@ -20,7 +20,7 @@ import uvicorn
 
 import scanner
 
-APP_VERSION = "v1.1.2"
+APP_VERSION = "v1.1.3"
 GITHUB_REPO = "PlasmaDrifter/podman-systemd-dashboard"
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -152,7 +152,7 @@ def apply_self_update(target_tag: str = "") -> dict:
         # Check if working tree has uncommitted local changes (e.g. during active development / testing)
         status_check = subprocess.run(["git", "status", "--porcelain"], cwd=base_dir_str, capture_output=True, text=True)
         if status_check.stdout.strip():
-            new_ver = target_tag if target_tag.startswith("v") else f"v{target_tag}" if target_tag else "v1.1.2"
+            new_ver = target_tag if target_tag.startswith("v") else f"v{target_tag}" if target_tag else APP_VERSION
             app_file = os.path.join(base_dir_str, "app.py")
             with open(app_file, "r") as f:
                 s_content = f.read()
