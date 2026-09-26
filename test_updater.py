@@ -71,5 +71,58 @@ class TestUpdaterEndpoints(unittest.TestCase):
             with open(extracted_file, "r") as f:
                 self.assertIn("updated", f.read())
 
+    def test_scan_docker_containers(self):
+        from unittest.mock import patch, MagicMock
+        import scanner
+
+        mock_ndjson = (
+            '{"ID":"e1f2a3b4c5d6","Names":"/my-web-app","Image":"nginx:alpine",'
+            '"State":"running","Status":"Up 2 hours","Ports":"0.0.0.0:8088->80/tcp, :::8088->80/tcp"}\n'
+            '{"ID":"1234567890ab","Names":"worker-task","Image":"redis:alpine",'
+            '"State":"exited","Status":"Exited (0) 10 minutes ago","Ports":""}\n'
+        )
+
+        with patch("shutil.which", return_value="/usr/bin/docker"), \
+             patch("subprocess.run") as mock_run:
+            mock_proc = MagicMock()
+            mock_proc.returncode = 0
+            mock_proc.stdout = mock_ndjson
+            mock_run.return_value = mock_proc
+
+            containers = scanner.scan_docker_containers()
+            self.assertEqual(len(containers), 2)
+
+            c1 = containers[0]
+            self.assertEqual(c1["name"], "my-web-app")
+            self.assertEqual(c1["id"], "e1f2a3b4c5d6")
+            self.assertEqual(c1["engine"], "docker")
+            self.assertEqual(c1["state"], "running")
+            self.assertEqual(c1["port"], 8088)
+            self.assertIn(8088, c1["ports"])
+
+            c2 = containers[1]
+            self.assertEqual(c2["name"], "worker-task")
+            self.assertEqual(c2["engine"], "docker")
+            self.assertEqual(c2["state"], "exited")
+            self.assertIsNone(c2["port"])
+
+    def test_scan_all_container_stats(self):
+        from unittest.mock import patch
+        import scanner
+
+        fake_podman = [{"name": "p1", "state": "running", "port": 5000, "engine": "podman"}]
+        fake_docker = [{"name": "d1", "state": "running", "port": 8080, "engine": "docker"}]
+
+        with patch("scanner.scan_systemd_units", return_value=({}, {})), \
+             patch("scanner.scan_podman_containers", return_value=fake_podman), \
+             patch("scanner.scan_docker_containers", return_value=fake_docker):
+            res = scanner.scan_all()
+            stats = res["stats"]
+            self.assertEqual(stats["total_containers"], 2)
+            self.assertEqual(stats["podman_containers"], 1)
+            self.assertEqual(stats["docker_containers"], 1)
+            self.assertEqual(stats["running_containers"], 2)
+
 if __name__ == "__main__":
     unittest.main()
+

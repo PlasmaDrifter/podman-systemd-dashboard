@@ -10,6 +10,7 @@ let currentLastScanText = 'Last scan: --:--:--';
 
 const CATEGORY_ORDER = [
   "Web Apps & Dashboards",
+  "Containers",
   "Podman Containers",
   "Scheduled Tasks & Timers",
   "Local Utilities & Daemons"
@@ -166,7 +167,14 @@ function applyData(data) {
   document.getElementById('stat-total-services').textContent = allServices.length;
   document.getElementById('stat-running-services').textContent = runningServicesCount;
   document.getElementById('stat-web').textContent = webCount;
-  document.getElementById('stat-containers').textContent = allContainers.length;
+  const containerCount = (data.stats && typeof data.stats.total_containers === 'number') ? data.stats.total_containers : allContainers.length;
+  const statContainersEl = document.getElementById('stat-containers');
+  if (statContainersEl) {
+    statContainersEl.textContent = containerCount;
+    if (data.stats && (data.stats.podman_containers !== undefined || data.stats.docker_containers !== undefined)) {
+      statContainersEl.parentElement.title = `Filter Containers (${data.stats.podman_containers || 0} Podman, ${data.stats.docker_containers || 0} Docker)`;
+    }
+  }
   document.getElementById('stat-timers').textContent = (data.stats && data.stats.active_timers) || 0;
 
   if (data.last_scan) {
@@ -200,12 +208,15 @@ function getUnifiedItems() {
     }
 
     let description = s.description;
+    let engine = s.type === 'quadlet' ? 'podman' : (matchedContainer ? matchedContainer.engine : null);
     if (!description && matchedContainer) {
-      description = `Podman Container: ${matchedContainer.image}`;
+      const engineLabel = matchedContainer.engine === 'docker' ? 'Docker' : 'Podman';
+      description = `${engineLabel} Container: ${matchedContainer.image}`;
     }
 
     combined.push({
       itemType: s.type === 'quadlet' ? 'quadlet' : 'service',
+      engine: engine,
       name: s.name,
       displayName: s.custom_name || cleanName,
       description: description || 'Background Service',
@@ -223,15 +234,16 @@ function getUnifiedItems() {
     if (!matchedContainerNames.has(c.name.toLowerCase())) {
       combined.push({
         itemType: 'container',
+        engine: c.engine || 'podman',
         name: c.name,
         displayName: c.name,
         description: `Container Image: ${c.image}`,
-        filePath: `Container ID: ${c.id}`,
+        filePath: `${c.engine === 'docker' ? 'Docker' : 'Podman'} ID: ${c.id}`,
         activeState: c.state === 'running' ? 'active' : 'inactive',
         subState: c.status,
         port: c.port,
         timer: null,
-        category: "Podman Containers"
+        category: c.category || "Containers"
       });
     }
   });
@@ -252,7 +264,7 @@ function getUnifiedItems() {
     if (currentCategoryFilter === 'web') {
       filtered = filtered.filter(i => i.category === 'Web Apps & Dashboards');
     } else if (currentCategoryFilter === 'containers') {
-      filtered = filtered.filter(i => i.category === 'Podman Containers');
+      filtered = filtered.filter(i => i.category === 'Containers' || i.category === 'Podman Containers');
     } else if (currentCategoryFilter === 'timers') {
       filtered = filtered.filter(i => i.category === 'Scheduled Tasks & Timers');
     }
@@ -265,8 +277,9 @@ function getUnifiedItems() {
       const matchFile = item.name.toLowerCase().includes(currentSearch);
       const matchDesc = item.description.toLowerCase().includes(currentSearch);
       const matchPort = item.port ? String(item.port).includes(currentSearch) : false;
+      const matchEngine = item.engine && item.engine.toLowerCase().includes(currentSearch);
       const matchTimer = item.timer ? (item.timer.name.toLowerCase().includes(currentSearch) || (item.timer.schedule && item.timer.schedule.toLowerCase().includes(currentSearch))) : false;
-      return matchName || matchFile || matchDesc || matchPort || matchTimer;
+      return matchName || matchFile || matchDesc || matchPort || matchEngine || matchTimer;
     });
   }
 
@@ -385,7 +398,10 @@ function renderTableHTML(items) {
           </span>
         </td>
         <td>
-          <div class="table-service-name">${escapeHtml(item.displayName)}</div>
+          <div class="table-service-name">
+            ${escapeHtml(item.displayName)}
+            ${item.engine ? `<span class="engine-badge engine-${item.engine}">${item.engine === 'docker' ? 'Docker' : 'Podman'}</span>` : ''}
+          </div>
           <div class="table-service-file">${escapeHtml(item.name)}</div>
         </td>
         <td class="table-desc" title="${escapeHtml(item.description)}">${escapeHtml(item.description)}</td>
@@ -423,7 +439,17 @@ function createCardElement(item) {
   let statusClass = isRunning ? 'active' : 'inactive';
   let statusText = isRunning ? 'Running' : (item.timer ? 'Timer Scheduled' : item.activeState);
 
-  const typeLabel = item.itemType === 'quadlet' ? 'Quadlet' : (item.itemType === 'container' ? 'Container' : (item.timer ? 'Timer' : 'Service'));
+  let typeLabel = item.timer ? 'Timer' : 'Service';
+  let typePillClass = '';
+  if (item.itemType === 'quadlet') {
+    typeLabel = 'Quadlet';
+    typePillClass = 'engine-podman';
+  } else if (item.itemType === 'container') {
+    typeLabel = item.engine === 'docker' ? 'Docker' : 'Podman';
+    typePillClass = item.engine === 'docker' ? 'engine-docker' : 'engine-podman';
+  } else if (item.engine) {
+    typePillClass = item.engine === 'docker' ? 'engine-docker' : 'engine-podman';
+  }
 
   let metaHtml = '';
   if (item.timer) {
@@ -486,7 +512,7 @@ function createCardElement(item) {
             <span class="status-dot"></span>
             ${statusText}
           </span>
-          <span class="type-pill">${typeLabel}</span>
+          <span class="type-pill ${typePillClass}">${typeLabel}</span>
         </div>
       </div>
       <div class="service-desc">${escapeHtml(item.description)}</div>
@@ -826,7 +852,7 @@ let userSettings = {
 };
 
 let appUpdateData = null;
-let cachedAppVersion = "v1.1.3";
+let cachedAppVersion = "v1.1.4";
 let cachedGithubRepo = "PlasmaDrifter/podman-systemd-dashboard";
 
 function loadSavedSettings() {
@@ -1022,7 +1048,7 @@ function renderUpdateUI(info) {
 
   const settingsVer = document.getElementById("settings-app-version");
   if (settingsVer) {
-    const curVer = (info && info.current_version) ? info.current_version : (cachedAppVersion || "v1.1.3");
+    const curVer = (info && info.current_version) ? info.current_version : (cachedAppVersion || "v1.1.4");
     settingsVer.textContent = curVer.startsWith("v") ? curVer : `v${curVer}`;
   }
 
@@ -1039,7 +1065,7 @@ function renderUpdateUI(info) {
     if (ghLink) {
       ghLink.classList.remove("has-update");
       ghLink.href = `https://github.com/${cachedGithubRepo || 'PlasmaDrifter/podman-systemd-dashboard'}`;
-      ghLink.title = `GitHub Repository (${cachedAppVersion || 'v1.1.3'})`;
+      ghLink.title = `GitHub Repository (${cachedAppVersion || 'v1.1.4'})`;
     }
 
     if (btnSettings) {
@@ -1094,7 +1120,7 @@ function clearUpdateIndicator() {
   if (ghLink) {
     ghLink.classList.remove("has-update");
     ghLink.href = `https://github.com/${cachedGithubRepo || 'PlasmaDrifter/podman-systemd-dashboard'}`;
-    ghLink.title = `GitHub Repository (${cachedAppVersion || 'v1.1.3'})`;
+    ghLink.title = `GitHub Repository (${cachedAppVersion || 'v1.1.4'})`;
   }
   if (navBadge) {
     navBadge.classList.add("hidden");

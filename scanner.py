@@ -98,7 +98,7 @@ def detect_port_from_content(content):
 
 def assign_category(name, is_container, has_timer, port):
     if is_container:
-        return "Podman Containers"
+        return "Containers"
     if has_timer:
         return "Scheduled Tasks & Timers"
     if port or any(kw in name.lower() for kw in ["web", "dashboard", "kuma", "flame", "store", "catelog", "curator"]):
@@ -212,27 +212,33 @@ def scan_systemd_units():
             }
 
     # 4. Query active states via systemctl list-units
-    try:
-        p = subprocess.run(
-            ["systemctl", "--user", "list-units", "--type=service", "--all", "--output=json"],
-            capture_output=True, text=True, timeout=5
-        )
-        if p.returncode == 0 and p.stdout:
-            data = json.loads(p.stdout)
-            active_map = {item["unit"]: item for item in data if "unit" in item}
-            for sname, sdata in services.items():
-                if sname in active_map:
-                    sdata["active_state"] = active_map[sname].get("active", "unknown")
-                    sdata["sub_state"] = active_map[sname].get("sub", "unknown")
-                    sdata["load_state"] = active_map[sname].get("load", "unknown")
-                    if not sdata["description"]:
-                        sdata["description"] = active_map[sname].get("description", "")
-                else:
-                    sdata["active_state"] = "inactive"
-                    sdata["sub_state"] = "dead"
-                    sdata["load_state"] = "unloaded"
-    except Exception as e:
-        print("Error fetching systemctl units:", e)
+    has_systemctl = bool(shutil.which("systemctl"))
+    if has_systemctl:
+        try:
+            p = subprocess.run(
+                ["systemctl", "--user", "list-units", "--type=service", "--all", "--output=json"],
+                capture_output=True, text=True, timeout=5
+            )
+            if p.returncode == 0 and p.stdout:
+                data = json.loads(p.stdout)
+                active_map = {item["unit"]: item for item in data if "unit" in item}
+                for sname, sdata in services.items():
+                    if sname in active_map:
+                        sdata["active_state"] = active_map[sname].get("active", "unknown")
+                        sdata["sub_state"] = active_map[sname].get("sub", "unknown")
+                        sdata["load_state"] = active_map[sname].get("load", "unknown")
+                        if not sdata["description"]:
+                            sdata["description"] = active_map[sname].get("description", "")
+                    else:
+                        sdata["active_state"] = "inactive"
+                        sdata["sub_state"] = "dead"
+                        sdata["load_state"] = "unloaded"
+        except Exception as e:
+            print("Error fetching systemctl units:", e)
+            for sdata in services.values():
+                sdata["active_state"] = "unknown"
+                sdata["sub_state"] = "unknown"
+    else:
         for sdata in services.values():
             sdata["active_state"] = "unknown"
             sdata["sub_state"] = "unknown"
@@ -248,28 +254,29 @@ def scan_systemd_units():
         services.pop(k, None)
 
     # 5. Query timer execution status via systemctl list-timers
-    try:
-        p = subprocess.run(
-            ["systemctl", "--user", "list-timers", "--all", "--output=json"],
-            capture_output=True, text=True, timeout=5
-        )
-        if p.returncode == 0 and p.stdout:
-            timers_json = json.loads(p.stdout)
-            timer_runtime = {t.get("unit"): t for t in timers_json if "unit" in t}
-            for sname, sdata in services.items():
-                if sdata.get("timer"):
-                    t_unit = sdata["timer"]["name"]
-                    if t_unit in timer_runtime:
-                        tr = timer_runtime[t_unit]
-                        next_val = tr.get("next")
-                        if isinstance(next_val, (int, float)) and next_val > 0:
-                            sdata["timer"]["next_str"] = datetime.fromtimestamp(next_val / 1_000_000).strftime("%Y-%m-%d %H:%M:%S")
-                        else:
-                            sdata["timer"]["next_str"] = str(next_val) if next_val else "n/a"
-                        sdata["timer"]["left_str"] = str(tr.get("left", ""))
-                        sdata["timer"]["last_str"] = str(tr.get("last", ""))
-    except Exception as e:
-        print("Error fetching systemctl timers:", e)
+    if has_systemctl:
+        try:
+            p = subprocess.run(
+                ["systemctl", "--user", "list-timers", "--all", "--output=json"],
+                capture_output=True, text=True, timeout=5
+            )
+            if p.returncode == 0 and p.stdout:
+                timers_json = json.loads(p.stdout)
+                timer_runtime = {t.get("unit"): t for t in timers_json if "unit" in t}
+                for sname, sdata in services.items():
+                    if sdata.get("timer"):
+                        t_unit = sdata["timer"]["name"]
+                        if t_unit in timer_runtime:
+                            tr = timer_runtime[t_unit]
+                            next_val = tr.get("next")
+                            if isinstance(next_val, (int, float)) and next_val > 0:
+                                sdata["timer"]["next_str"] = datetime.fromtimestamp(next_val / 1_000_000).strftime("%Y-%m-%d %H:%M:%S")
+                            else:
+                                sdata["timer"]["next_str"] = str(next_val) if next_val else "n/a"
+                            sdata["timer"]["left_str"] = str(tr.get("left", ""))
+                            sdata["timer"]["last_str"] = str(tr.get("last", ""))
+        except Exception as e:
+            print("Error fetching systemctl timers:", e)
 
     # Assign category
     for sname, sdata in services.items():
@@ -280,15 +287,20 @@ def scan_systemd_units():
 
 def scan_podman_containers():
     containers = []
+    podman_bin = shutil.which("podman")
+    if not podman_bin:
+        return containers
+
     try:
         p = subprocess.run(
-            ["podman", "ps", "-a", "--format", "json"],
+            [podman_bin, "ps", "-a", "--format", "json"],
             capture_output=True, text=True, timeout=5
         )
         if p.returncode == 0 and p.stdout:
             data = json.loads(p.stdout)
             for item in data:
                 cname = item.get("Names", [""])[0] if isinstance(item.get("Names"), list) else str(item.get("Names", ""))
+                cname = cname.lstrip("/")
                 ports = []
                 primary_port = None
                 for port_obj in item.get("Ports", []):
@@ -306,7 +318,8 @@ def scan_podman_containers():
                     "name": cname,
                     "id": item.get("Id", "")[:12],
                     "type": "container",
-                    "category": "Podman Containers",
+                    "engine": "podman",
+                    "category": "Containers",
                     "state": item.get("State", "").lower(),
                     "status": item.get("Status", ""),
                     "image": item.get("Image", ""),
@@ -318,9 +331,81 @@ def scan_podman_containers():
         print("Error fetching podman containers:", e)
     return containers
 
+def scan_docker_containers():
+    containers = []
+    docker_bin = shutil.which("docker")
+    if not docker_bin:
+        return containers
+
+    try:
+        p = subprocess.run(
+            [docker_bin, "ps", "-a", "--format", "{{json .}}"],
+            capture_output=True, text=True, timeout=5
+        )
+        if p.returncode == 0 and p.stdout.strip():
+            raw = p.stdout.strip()
+            # Handle NDJSON (one JSON per line) or JSON array
+            if raw.startswith("["):
+                items = json.loads(raw)
+            else:
+                items = []
+                for line in raw.splitlines():
+                    line = line.strip()
+                    if line:
+                        try:
+                            items.append(json.loads(line))
+                        except Exception:
+                            pass
+
+            for item in items:
+                raw_name = item.get("Names") or item.get("Name") or ""
+                if isinstance(raw_name, list):
+                    raw_name = raw_name[0] if raw_name else ""
+                cname = str(raw_name).lstrip("/").split(",")[0].strip()
+                cid = item.get("ID", item.get("Id", ""))[:12]
+                if not cname:
+                    cname = cid or "unnamed-container"
+
+                ports_str = item.get("Ports", "")
+                ports = []
+                primary_port = None
+                if isinstance(ports_str, str) and ports_str:
+                    # Match published host ports like 0.0.0.0:8080->80/tcp or :::8080->80/tcp
+                    for m in re.finditer(r'(?:^|[\s,])(?:(?:\d{1,3}\.){3}\d{1,3}|\[::\]|:::)?(?::)?(\d+)->', ports_str):
+                        p_num = int(m.group(1))
+                        if p_num not in ports and 1 <= p_num <= 65535:
+                            ports.append(p_num)
+                            if not primary_port:
+                                primary_port = p_num
+
+                if not primary_port and cname in KNOWN_PORTS:
+                    primary_port = KNOWN_PORTS[cname]
+
+                state = item.get("State", "").lower()
+                status = item.get("Status", "")
+
+                containers.append({
+                    "name": cname,
+                    "id": cid,
+                    "type": "container",
+                    "engine": "docker",
+                    "category": "Containers",
+                    "state": state,
+                    "status": status,
+                    "image": item.get("Image", ""),
+                    "created": item.get("CreatedAt", item.get("Created", "")),
+                    "ports": ports,
+                    "port": primary_port
+                })
+    except Exception as e:
+        print("Error fetching docker containers:", e)
+    return containers
+
 def scan_all():
     services_dict, timers_dict = scan_systemd_units()
-    containers_list = scan_podman_containers()
+    podman_containers = scan_podman_containers()
+    docker_containers = scan_docker_containers()
+    containers_list = podman_containers + docker_containers
     
     meta = load_metadata()
     for sname, sdata in services_dict.items():
@@ -344,6 +429,8 @@ def scan_all():
         "running_services": running_services,
         "total_containers": len(containers_list),
         "running_containers": running_containers,
+        "podman_containers": len(podman_containers),
+        "docker_containers": len(docker_containers),
         "total_timers": len(timers_dict),
         "active_timers": active_timers,
         "web_services": web_services
@@ -387,7 +474,8 @@ def save_unit_content(unit_name, new_content):
     with open(target, "w") as f:
         f.write(new_content)
         
-    subprocess.run(["systemctl", "--user", "daemon-reload"], check=True)
+    if shutil.which("systemctl"):
+        subprocess.run(["systemctl", "--user", "daemon-reload"], check=True)
     return str(backup_file)
 
 def service_action(unit_name, action):
@@ -395,6 +483,9 @@ def service_action(unit_name, action):
     if action not in valid_actions:
         raise ValueError(f"Invalid action: {action}")
     
+    if not shutil.which("systemctl"):
+        raise RuntimeError("systemctl is not available on this system.")
+
     res = subprocess.run(
         ["systemctl", "--user", action, unit_name],
         capture_output=True, text=True, timeout=15
@@ -404,6 +495,9 @@ def service_action(unit_name, action):
     return True
 
 def get_service_logs(unit_name, lines=100):
+    if not shutil.which("journalctl"):
+        return "journalctl is not available on this system."
+
     res = subprocess.run(
         ["journalctl", "--user", "-u", unit_name, "-n", str(lines), "--no-pager"],
         capture_output=True, text=True, timeout=5
