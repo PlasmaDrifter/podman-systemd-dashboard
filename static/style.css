@@ -830,8 +830,10 @@ body.density-spacious .service-card {
 }
 
 .logs-modal-content {
-  max-width: 950px;
-  height: 80vh;
+  max-width: min(1300px, 95vw);
+  width: 95vw;
+  height: 85vh;
+  max-height: 90vh;
 }
 
 .modal-header {
@@ -910,9 +912,32 @@ body.density-spacious .service-card {
   font-size: 0.82rem;
   line-height: 1.5;
   padding: 16px;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-all;
+  overflow-x: auto;
+  overflow-y: auto;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+.logs-terminal::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.logs-terminal::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.logs-terminal::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.logs-terminal::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 .modal-footer {
